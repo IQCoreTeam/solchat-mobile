@@ -28,6 +28,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="ladybug.fill" color={color} />,
         }}
       />
+            <Tabs.Screen
+              name="make_app_wallet"
+              options={{
+                title: 'Make IQ wallet',
+                tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="ladybug.fill" color={color} />,
+              }}
+            />
     </Tabs>
   )
 }

@@ -8,7 +8,7 @@ import { ActivityIndicator, View } from 'react-native'
 import { Image } from 'expo-image'
 import { Button } from '@react-navigation/elements'
 
-export default function SignIn() {
+export default function () {
   const { signIn, isLoading } = useAuth()
   return (
     <AppView
