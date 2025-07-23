@@ -1,6 +1,6 @@
+import { UiIconSymbol } from '@/components/ui/ui-icon-symbol'
 import { Tabs } from 'expo-router'
 import React from 'react'
-import { UiIconSymbol } from '@/components/ui/ui-icon-symbol'
 
 export default function TabLayout() {
   return (
@@ -19,6 +19,13 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="gearshape.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />,
         }}
       />
       <Tabs.Screen
