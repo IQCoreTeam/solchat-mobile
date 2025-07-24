@@ -28,7 +28,6 @@ const processCommand = (command: string): { output?: string; clear?: boolean } =
           '2 - Enter chat room',
           'clear - Clear screen',
           'help - Show this message',
-          'echo <text> - Print text'
         ].join('\n'),
       };
     case '1':
