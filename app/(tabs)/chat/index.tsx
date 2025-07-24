@@ -1,7 +1,8 @@
 import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
 import React, { useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
+import styles from './styles';
 
 // TypeScript interface for history items
 interface HistoryItem {
@@ -9,56 +10,6 @@ interface HistoryItem {
   input?: string;
   output?: string;
 }
-
-// Styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  title: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  history: {
-    flex: 1,
-  },
-  historyContent: {
-    padding: 10,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  prompt: {
-    color: '#0f0',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 16,
-  },
-  input: {
-    flex: 1,
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 16,
-    paddingVertical: 5,
-  },
-  inputText: {
-    color: '#0f0',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 16,
-    marginVertical: 2,
-  },
-  outputText: {
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 16,
-    marginVertical: 2,
-  },
-});
 
 // Command processing logic
 const processCommand = (command: string): { output?: string; clear?: boolean } => {
@@ -126,8 +77,10 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [command, setCommand] = useState<string>('');
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const flatListRef = useRef<FlatList<HistoryItem>>(null);
+  const WELCOME_MESSAGE = 'Welcome to Solchat CLI! Type help for commands.';
+  const [history, setHistory] = useState<HistoryItem[]>([
+    { id: 'welcome', output: WELCOME_MESSAGE }
+  ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
 
   const handleCommandSubmit = () => {
     if (command.trim() === '') return;
