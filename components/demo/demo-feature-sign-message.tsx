@@ -22,7 +22,7 @@ function useSignMessage({ address }: { address: PublicKey }) {
 export function DemoFeatureSignMessage({ address }: { address: PublicKey }) {
   const signMessage = useSignMessage({ address })
   const [message, setMessage] = useState('Hello world')
-  const backgroundColor = useThemeColor({ light: '#f0f0f0', dark: '#333333' }, 'background')
+  const backgroundColor = useThemeColor({ light: '#f0f0f0', dark: '#1a1a1a' }, 'background')
   const textColor = useThemeColor({ light: '#000000', dark: '#ffffff' }, 'text')
 
   return (

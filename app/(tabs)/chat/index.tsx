@@ -13,20 +13,37 @@ interface HistoryItem {
 
 // Command processing logic
 const processCommand = (command: string): { output?: string; clear?: boolean } => {
-  if (command.trim() === '') return {};
+  const cmd = command.trim().toLowerCase();
 
-  switch (command.toLowerCase()) {
+  if (cmd === '') return {};
+
+  switch (cmd) {
     case 'clear':
       return { clear: true };
     case 'help':
-      return { output: 'Available commands: clear, help, echo <text>' };
+      return {
+        output: [
+          'Available commands:',
+          '1 - Create or search chat server',
+          '2 - Enter chat room',
+          'clear - Clear screen',
+          'help - Show this message',
+          'echo <text> - Print text'
+        ].join('\n'),
+      };
+    case '1':
+      return { output: 'Starting chat server creation... (not yet implemented)' };
+    case '2':
+      return { output: 'Entering chat room... (not yet implemented)' };
+      //TODO: make the error message when user do any on-chain action without the gas fee.
     default:
-      if (command.toLowerCase().startsWith('echo ')) {
-        return { output: command.slice(5) };
+      if (cmd.startsWith('echo ')) {
+        return { output: cmd.slice(5) };
       }
       return { output: `Command not found: ${command}` };
   }
 };
+
 
 // Component to render command history
 const CommandHistory: React.FC<{
@@ -77,7 +94,8 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [command, setCommand] = useState<string>('');
-  const WELCOME_MESSAGE = 'Welcome to Solchat CLI! Type help for commands.';
+  const WELCOME_MESSAGE = `Welcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
+
   const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'welcome', output: WELCOME_MESSAGE }
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
@@ -104,9 +122,6 @@ export default function TabSettingsScreen() {
 
   return (
     <AppPage>
-      <AppText type="title" style={styles.title}>
-        CLI Interface
-      </AppText>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

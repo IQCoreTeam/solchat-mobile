@@ -10,7 +10,7 @@ import { View } from 'react-native'
 import { useTrackLocations } from '@/hooks/use-track-locations'
 import { AppSplashController } from '@/components/app-splash-controller'
 import { useAuth } from '@/components/auth/auth-provider'
-
+import styles from './styles';
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
@@ -42,7 +42,7 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={styles.black_bg} onLayout={onLayoutRootView} >
       <AppProviders>
         <AppSplashController />
         <RootNavigator />

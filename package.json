@@ -59,6 +59,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
+    "react-native-encrypted-storage": "^4.0.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
@@ -67,7 +68,8 @@
     "react-native-svg": "^15.11.2",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "react-qr-code": "^2.0.16"
+    "react-qr-code": "^2.0.16",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -1,16 +1,23 @@
-import { useMobileWallet } from '@/components/solana/use-mobile-wallet'
-import { useAuthorization } from '@/components/solana/use-authorization'
+import { useIQWallet } from '@/components/solana/use-iq-wallet'
 
 export function useWalletUi() {
-  const { connect, signAndSendTransaction, signMessage, signIn } = useMobileWallet()
-  const { selectedAccount, deauthorizeSessions } = useAuthorization()
+  const {
+    publicKey,
+    account,
+    isAuthenticated,
+    connect,
+    disconnect,
+    signMessage,
+    signAndSendTransaction,
+  } = useIQWallet()
 
   return {
-    account: selectedAccount,
+    publicKey,
+    account,
+    isAuthenticated,
     connect,
-    disconnect: deauthorizeSessions,
-    signAndSendTransaction,
-    signIn,
+    disconnect,
     signMessage,
+    signAndSendTransaction,
   }
 }
