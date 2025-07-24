@@ -14,12 +14,15 @@ interface HistoryItem {
 // Simple test API call
 const handleChatServerAction = async (): Promise<string> => {
   try {
-
+    // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
     // https://solanacontractapi.uc.r.appspot.com
     const url = "https://solanacontractapi.uc.r.appspot.com/getDBPDA/A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6"
     const response = await fetch(url);
     
     if (!response.ok) {
+      if (response.status === 500) {
+        return 'Error: DBPDA not found in response';
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
