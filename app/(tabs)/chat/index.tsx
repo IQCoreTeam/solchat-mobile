@@ -11,8 +11,32 @@ interface HistoryItem {
   output?: string;
 }
 
+// Simple test API call
+const handleChatServerAction = async (): Promise<string> => {
+  try {
+
+    // https://solanacontractapi.uc.r.appspot.com
+    const url = "https://solanacontractapi.uc.r.appspot.com/getDBPDA/A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6"
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (data && data.DBPDA) {
+      return `Fetched DBPDA: ${data.DBPDA}`;
+    } else {
+      return 'Error: DBPDA not found in response';
+    }
+  } catch (error) {
+    console.error('API call failed:', error);
+    return `API Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
+  }
+};
+
 // Command processing logic
-const processCommand = (command: string): { output?: string; clear?: boolean } => {
+const processCommand = async (command: string): Promise<{ output?: string; clear?: boolean }> => {
   const cmd = command.trim().toLowerCase();
 
   if (cmd === '') return {};
@@ -31,7 +55,7 @@ const processCommand = (command: string): { output?: string; clear?: boolean } =
         ].join('\n'),
       };
     case '1':
-      return { output: 'Starting chat server creation... (not yet implemented)' };
+      return { output: await handleChatServerAction() };
     case '2':
       return { output: 'Entering chat room... (not yet implemented)' };
       //TODO: make the error message when user do any on-chain action without the gas fee.
@@ -99,24 +123,42 @@ export default function TabSettingsScreen() {
     { id: 'welcome', output: WELCOME_MESSAGE }
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
 
-  const handleCommandSubmit = () => {
+  const handleCommandSubmit = async () => {
     if (command.trim() === '') return;
 
     const newEntry: HistoryItem = { id: Date.now().toString(), input: `> ${command}` };
-    const result = processCommand(command);
+    // Add the command to history immediately
+    setHistory(prevHistory => [...prevHistory, newEntry]);
+    
+    try {
+      const result = await processCommand(command);
+      
+      if (result.clear) {
+        setHistory([]);
+        setCommand('');
+        return;
+      }
 
-    if (result.clear) {
-      setHistory([]);
+      setHistory(prevHistory => [
+        ...prevHistory,
+        { id: (Date.now() + 1).toString(), output: result.output }
+      ]);
       setCommand('');
-      return;
+
+      // Scroll to bottom after state updates
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('Error processing command:', error);
+      setHistory(prevHistory => [
+        ...prevHistory,
+        { 
+          id: (Date.now() + 1).toString(), 
+          output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` 
+        }
+      ]);
     }
-
-    setHistory([...history, newEntry, { id: (Date.now() + 1).toString(), output: result.output }]);
-    setCommand('');
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
   };
 
   return (
