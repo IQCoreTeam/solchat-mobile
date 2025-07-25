@@ -18,7 +18,6 @@ export function AppText({ style, lightColor, darkColor, type = 'default', ...res
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-          type === 'defaultBold' ? styles.defaultBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? styles.link : undefined,
         style,
@@ -39,11 +38,7 @@ const styles = StyleSheet.create({
      fontFamily: 'MinecraftStandard',
      color:"#01df1e"
   },
-    defaultBold: {
-      fontSize: 14,
-       fontFamily: 'MinecraftStandardBold',
-            color:"#01df1e"
-    },
+
   title: {
     fontSize: 24,
     fontFamily: 'MinecraftStandardBold',

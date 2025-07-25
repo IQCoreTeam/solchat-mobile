@@ -10,6 +10,8 @@ import { View } from 'react-native'
 import { useTrackLocations } from '@/hooks/use-track-locations'
 import { AppSplashController } from '@/components/app-splash-controller'
 import { useAuth } from '@/components/auth/auth-provider'
+import { AppGlowView } from '@/components/ui/ui-glow-effect'
+
 import styles from './styles';
 SplashScreen.preventAutoHideAsync()
 
@@ -62,6 +64,8 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isAuthenticated } = useAuth()
   return (
+      <AppGlowView>
+
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" />
@@ -71,5 +75,6 @@ function RootNavigator() {
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
     </Stack>
+    </AppGlowView>
   )
 }
