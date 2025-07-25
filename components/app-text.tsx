@@ -31,28 +31,28 @@ const styles = StyleSheet.create({
   default: {
     fontSize: 14,
      fontFamily: 'MinecraftStandard',
-          color:"#01df1e"
+          color:"#15f016"
   },
   defaultSemiBold: {
     fontSize: 12,
      fontFamily: 'MinecraftStandard',
-     color:"#01df1e"
+     color:"#15f016"
   },
 
   title: {
     fontSize: 24,
     fontFamily: 'MinecraftStandardBold',
-     color:"#01df1e"
+     color:"#15f016"
   },
   subtitle: {
     fontSize: 14,
      fontFamily: 'MinecraftStandard',
-   color:"#01df1e"
+   color:"#15f016"
   },
   link: {
     fontSize: 16,
      fontFamily: 'MinecraftStandard',
-     color:"#01df1e"
+     color:"#15f016"
   },
 
 })

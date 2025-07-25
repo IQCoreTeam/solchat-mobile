@@ -6,10 +6,10 @@ export const Colors = {
     dark: {
         background: '#1a1a1a',
         border: '#2A2C2E',
-        icon: '#01df1e',
+        icon: '#15f016',
         tabIconDefault: '#00ff22',
         tabIconSelected: tintColorDark,
-        text: '#01df1e',
+        text: '#15f016',
         tint: tintColorDark,
       },
   light: {
