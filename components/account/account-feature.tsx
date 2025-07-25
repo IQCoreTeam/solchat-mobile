@@ -5,13 +5,13 @@ import { AppView } from '@/components/app-view'
 import { AppPage } from '@/components/app-page'
 import { AccountUiButtons } from './account-ui-buttons'
 import { AccountUiBalance } from '@/components/account/account-ui-balance'
-import { AccountUiTokenAccounts } from '@/components/account/account-ui-token-accounts'
-import { RefreshControl, ScrollView } from 'react-native'
+import { RefreshControl, ScrollView,View } from 'react-native'
 import { useCallback, useState } from 'react'
 import { useGetBalanceInvalidate } from '@/components/account/use-get-balance'
 import { PublicKey } from '@solana/web3.js'
 import { useGetTokenAccountsInvalidate } from '@/components/account/use-get-token-accounts'
 import { WalletUiButtonConnect } from '@/components/solana/wallet-ui-button-connect'
+
 
 export function AccountFeature() {
   const { account } = useWalletUi()
@@ -28,19 +28,18 @@ export function AccountFeature() {
     <AppPage>
       {account ? (
         <ScrollView
-          contentContainerStyle={{}}
+          contentContainerStyle={{flexGrow: 1,justifyContent: 'center',alignItems: 'center' , paddingBottom: '10%' }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => onRefresh()} />}
         >
-          <AppView style={{ alignItems: 'center', gap: 4 }}>
+
+          <AppView style={{ alignItems: 'center', justifyContent:'center', gap: 4}}>
             <AccountUiBalance address={account.publicKey} />
-            <AppText style={{ opacity: 0.7 }}>{ellipsify(account.publicKey.toString(), 8)}</AppText>
+            <AppText style={{ opacity: 0.7}}>{ellipsify(account.publicKey.toString(), 8)}</AppText>
           </AppView>
           <AppView style={{ marginTop: 16, alignItems: 'center' }}>
             <AccountUiButtons />
           </AppView>
-          <AppView style={{ marginTop: 16, alignItems: 'center' }}>
-            <AccountUiTokenAccounts address={account.publicKey} />
-          </AppView>
+
         </ScrollView>
       ) : (
         <AppView style={{ flexDirection: 'column', justifyContent: 'flex-end' }}>

@@ -14,9 +14,11 @@ export function AppText({ style, lightColor, darkColor, type = 'default', ...res
     <Text
       style={[
         { color },
+
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
+          type === 'defaultBold' ? styles.defaultBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? styles.link : undefined,
         style,
@@ -28,26 +30,34 @@ export function AppText({ style, lightColor, darkColor, type = 'default', ...res
 
 const styles = StyleSheet.create({
   default: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+     fontFamily: 'MinecraftStandard',
+          color:"#01df1e"
   },
   defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    fontSize: 12,
+     fontFamily: 'MinecraftStandard',
+     color:"#01df1e"
   },
+    defaultBold: {
+      fontSize: 14,
+       fontFamily: 'MinecraftStandardBold',
+            color:"#01df1e"
+    },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: 24,
+    fontFamily: 'MinecraftStandardBold',
+     color:"#01df1e"
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 14,
+     fontFamily: 'MinecraftStandard',
+   color:"#01df1e"
   },
   link: {
-    lineHeight: 30,
     fontSize: 16,
-    color: '#0a7ea4',
+     fontFamily: 'MinecraftStandard',
+     color:"#01df1e"
   },
+
 })

@@ -1,4 +1,6 @@
 import { UiIconSymbol } from '@/components/ui/ui-icon-symbol'
+import { Ionicons } from '@expo/vector-icons';
+
 import { Tabs } from 'expo-router'
 import React from 'react'
 
@@ -10,14 +12,19 @@ export default function TabLayout() {
        <Tabs.Screen
               name="chat"
               options={{
-                title: 'Chat',
-                tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />,
+ tabBarLabel: '',
+         tabBarActiveTintColor: '#00ff22',
+             tabBarInactiveTintColor: '#666666',
+                tabBarIcon: ({ color }) =>  <Ionicons name="chatbubble-ellipses" size={25} color={color} />,
               }}
             />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
+           tabBarLabel: '',
+                    tabBarActiveTintColor: '#00ff22',
+                        tabBarInactiveTintColor: '#666666',
           tabBarIcon: ({ color }) => <UiIconSymbol size={28} name="wallet.pass.fill" color={color} />,
         }}
       />

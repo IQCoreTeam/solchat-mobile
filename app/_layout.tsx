@@ -20,7 +20,13 @@ export default function RootLayout() {
     console.log(`Track ${pathname}`, { params })
   })
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+
+     MinecraftStandard: require('../assets/fonts/MinecraftStandard.otf'),
+     MinecraftStandardBold: require('../assets/fonts/MinecraftStandardBold.otf'),
+    MinecraftStandardBoldOblique: require('../assets/fonts/MinecraftStandardBoldOblique.otf'),
+    MinecraftStandardOblique: require('../assets/fonts/MinecraftStandardOblique.otf')
+
+
   })
 
   const onLayoutRootView = useCallback(async () => {

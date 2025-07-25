@@ -4,6 +4,7 @@ const styles = StyleSheet.create({
   black_bg: {
     flex: 1,
     backgroundColor: '#1a1a1a',
+
   },
 
 });
