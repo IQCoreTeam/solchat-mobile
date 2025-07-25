@@ -12,7 +12,7 @@ export default function Airdrop() {
   }
 
   return (
-    <AppView style={{ flex: 1, padding: 16 }}>
+    <AppView style={{ flex: 1, padding: 16 ,}}>
       <AccountFeatureAirdrop back={() => router.navigate('/(tabs)/account')} />
     </AppView>
   )

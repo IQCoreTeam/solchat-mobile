@@ -11,19 +11,21 @@ export function AppText({ style, lightColor, darkColor, type = 'default', ...res
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text')
 
   return (
-    <Text
-      style={[
-        { color },
+   <Text
+     style={[
+       { color },
 
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        style,
-      ]}
-      {...rest}
-    />
+       type === 'default' ? styles.default : undefined,
+       type === 'title' ? styles.title : undefined,
+       type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
+       type === 'subtitle' ? styles.subtitle : undefined,
+       type === 'link' ? styles.link : undefined,
+       style,
+     ]}
+     {...rest}
+   >
+     {rest.children}
+   </Text>
   )
 }
 
@@ -31,28 +33,28 @@ const styles = StyleSheet.create({
   default: {
     fontSize: 14,
      fontFamily: 'MinecraftStandard',
-          color:"#15f016"
+          color:"#15f016",
   },
   defaultSemiBold: {
     fontSize: 12,
-     fontFamily: 'MinecraftStandard',
-     color:"#15f016"
+     fontFamily: 'MinecraftStandardBold',
+     color:"#15f016",
   },
 
   title: {
     fontSize: 24,
     fontFamily: 'MinecraftStandardBold',
-     color:"#15f016"
+     color:"#15f016",
   },
   subtitle: {
-    fontSize: 14,
-     fontFamily: 'MinecraftStandard',
-   color:"#15f016"
+    fontSize: 19,
+     fontFamily: 'MinecraftStandardBold',
+   color:"#15f016",
   },
   link: {
     fontSize: 16,
      fontFamily: 'MinecraftStandard',
-     color:"#15f016"
+     color:"#15f016",
   },
 
 })

@@ -40,20 +40,20 @@ export default function SignIn() {
   }
 
   return (
-    <AppView style={{ flex: 1, justifyContent: 'center', alignItems: 'stretch' }}>
+    <AppView style={{ flex: 1, justifyContent: 'center', alignItems: 'stretch' ,}}>
       {isLoading ? (
         <ActivityIndicator />
       ) : (
-        <SafeAreaView style={{ flex: 1, justifyContent: 'space-between' }}>
+        <SafeAreaView style={{ flex: 1, justifyContent: 'space-between' ,}}>
           <View />
-          <View style={{ alignItems: 'center', gap: 16 }}>
+          <View style={{ alignItems: 'center', gap: 16 ,}}>
             <AppText type="title">{AppConfig.name}</AppText>
-            <Image source={require('../assets/images/icon.png')} style={{ width: 128, height: 128 }} />
+            <Image source={require('../assets/images/icon.png')} style={{ width: 128, height: 128, }} />
           </View>
-          <View style={{ marginBottom: 16 }}>
+          <View style={{ marginBottom: 16, }}>
             <Button
               variant="filled"
-              style={{ marginHorizontal: 16 }}
+              style={{ marginHorizontal: 16, }}
               onPress={handleSignIn}
             >
               Connect

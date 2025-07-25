@@ -34,7 +34,7 @@ function useDropdownItems() {
 
 export function WalletUiDropdown() {
   const { account } = useWalletUi()
-  const { backgroundColor, borderColor, textColor } = useWalletUiTheme()
+  const { backgroundColor, borderColor } = useWalletUiTheme()
 
   const items = useDropdownItems()
 
@@ -44,9 +44,9 @@ export function WalletUiDropdown() {
 
   return (
     <Dropdown.Root>
-      <Dropdown.Trigger style={[styles.trigger, { backgroundColor, borderColor }]}>
-        <UiIconSymbol name="wallet.pass.fill" color={textColor} />
-        <AppText>{ellipsify(account.publicKey.toString())}</AppText>
+      <Dropdown.Trigger style={[styles.trigger, { borderColor }]}>
+        <UiIconSymbol name="wallet.pass.fill" color="#000000" />
+        <AppText style={{color:"#000000"}}>{ellipsify(account.publicKey.toString())}</AppText>
       </Dropdown.Trigger>
       <Dropdown.Portal>
         <Dropdown.Overlay style={StyleSheet.absoluteFill}>
@@ -69,20 +69,21 @@ export function WalletUiDropdown() {
 export const styles = StyleSheet.create({
   trigger: {
     alignItems: 'center',
-    borderRadius: 50,
+    borderRadius: 0,
     borderWidth: 1,
+    backgroundColor:"#15f016",
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 23,
     paddingVertical: 8,
   },
   list: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 0,
     marginTop: 8,
   },
   item: {
-    padding: 12,
+    padding: 10,
     flexWrap: 'nowrap',
   },
 })

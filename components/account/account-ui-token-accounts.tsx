@@ -12,7 +12,7 @@ export function AccountUiTokenAccounts({ address }: { address: PublicKey }) {
 
   return (
     <>
-      <AppText type="subtitle" style={{ marginBottom: 8 }}>
+      <AppText type="subtitle" style={{ marginBottom: 8, }}>
         Token Accounts
       </AppText>
       {query.isLoading && <ActivityIndicator animating={true} />}

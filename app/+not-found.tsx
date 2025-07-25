@@ -10,7 +10,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
       <AppView style={styles.container}>
-        <AppText type="title" style={{ textAlign: 'center' }}>
+        <AppText type="title" style={{ textAlign: 'center' ,}}>
           This screen does not exist.
         </AppText>
         <Link href="/" style={styles.link}>

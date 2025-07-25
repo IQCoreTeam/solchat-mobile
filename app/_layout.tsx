@@ -21,13 +21,10 @@ export default function RootLayout() {
     console.log(`Track ${pathname}`, { params })
   })
   const [loaded] = useFonts({
-
      MinecraftStandard: require('../assets/fonts/MinecraftStandard.otf'),
      MinecraftStandardBold: require('../assets/fonts/MinecraftStandardBold.otf'),
     MinecraftStandardBoldOblique: require('../assets/fonts/MinecraftStandardBoldOblique.otf'),
     MinecraftStandardOblique: require('../assets/fonts/MinecraftStandardOblique.otf')
-
-
   })
 
   const onLayoutRootView = useCallback(async () => {
@@ -63,8 +60,6 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isAuthenticated } = useAuth()
   return (
-
-
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" />

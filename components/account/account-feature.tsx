@@ -28,21 +28,22 @@ export function AccountFeature() {
     <AppPage>
       {account ? (
         <ScrollView
-          contentContainerStyle={{flexGrow: 1,justifyContent: 'center',alignItems: 'center' , paddingBottom: '10%' }}
+          contentContainerStyle={{flexGrow: 1,justifyContent: 'center',alignItems: 'center' , paddingBottom: '10%', }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => onRefresh()} />}
+         style={{borderColor:"#15f016", borderTopWidth: 2,  borderBottomWidth: 2,borderStyle: 'dashed',}}
         >
 
-          <AppView style={{ alignItems: 'center', justifyContent:'center', gap: 4}}>
+          <AppView style={{ alignItems: 'center', justifyContent:'center', gap: 4,}}>
             <AccountUiBalance address={account.publicKey} />
-            <AppText style={{ opacity: 0.7}}>{ellipsify(account.publicKey.toString(), 8)}</AppText>
+            <AppText style={{ opacity: 0.7,}}>{ellipsify(account.publicKey.toString(), 8)}</AppText>
           </AppView>
-          <AppView style={{ marginTop: 16, alignItems: 'center' }}>
+          <AppView style={{ marginTop: 16, alignItems: 'center', }}>
             <AccountUiButtons />
           </AppView>
 
         </ScrollView>
       ) : (
-        <AppView style={{ flexDirection: 'column', justifyContent: 'flex-end' }}>
+        <AppView style={{ flexDirection: 'column', justifyContent: 'flex-end', }}>
           <AppText>Connect your wallet.</AppText>
           <WalletUiButtonConnect />
         </AppView>

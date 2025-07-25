@@ -8,14 +8,14 @@ export default function Layout() {
     <Stack
          screenOptions={{
            headerTitle: () => <AppText type="subtitle">Account</AppText>,
-           headerRight: () => <WalletUiDropdown />,
+           headerRight: () => <WalletUiDropdown />
          }}
        >
-             <Stack.Screen name="index" />
+      <Stack.Screen name="index" />
 
-      <Stack.Screen name="airdrop" options={{ headerTitle: 'Airdrop', headerRight: () => null }} />
-      <Stack.Screen name="send" options={{ headerTitle: 'Send', headerRight: () => null }} />
-      <Stack.Screen name="receive" options={{ headerTitle: 'Receive', headerRight: () => null }} />
+      <Stack.Screen name="airdrop" options={{ headerTitle: 'Airdrop', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
+      <Stack.Screen name="send" options={{ headerTitle: 'Send', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
+      <Stack.Screen name="receive" options={{ headerTitle: 'Receive', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
     </Stack>
   )
 }

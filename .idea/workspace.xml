@@ -6,8 +6,23 @@
   <component name="ChangeListManager">
     <list default="true" id="ad74a90f-a7e7-4c08-afbb-0494b92e77c7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/account/account-ui-buttons.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-ui-buttons.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/account/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/account/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/account/airdrop.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/account/airdrop.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/account/receive.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/account/receive.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/account/send.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/account/send.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/+not-found.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/+not-found.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/sign-in.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/sign-in.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/account/account-feature-airdrop.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-feature-airdrop.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/account/account-feature-receive.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-feature-receive.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/account/account-feature-send.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-feature-send.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/account/account-feature.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-feature.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/account/account-ui-token-accounts.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/account/account-ui-token-accounts.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/app-qr-code.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/app-qr-code.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/app-text.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/app-text.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/solana/wallet-ui-dropdown.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/solana/wallet-ui-dropdown.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/ui-glow-effect.tsx" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/constants/colors.ts" beforeDir="false" afterPath="$PROJECT_DIR$/constants/colors.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
