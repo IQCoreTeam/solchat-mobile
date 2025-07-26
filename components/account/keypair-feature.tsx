@@ -27,7 +27,7 @@ export function LocalWalletKeypairFeature() {
 
   return (
     <AppView>
-      <AppText type="subtitle">Let's test making a server wallet</AppText>
+      <AppText type="subtitle">Lets test making a server wallet</AppText>
 
       <Button onPress={handleSetKeypair} variant="filled">
         setAppWallet
