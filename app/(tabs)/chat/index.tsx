@@ -18,17 +18,28 @@ interface HistoryItem {
 // Simple test API call
 const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<string> => {
   try {
-    // valid address for PDA:
+    // valid wallet
     // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
+    // valid pda
+    // BHcXCRmnPWNz31UUJEhe8W46seNrDH6ZysHyug5XNmCd
+    console.log(`DEBUG: in handleChatServerAction`)
+    console.log(`DEBUG: serverId : ${serverId}`)
+    console.log(`DEBUG: pubkey : ${pubkey}`)
+    
+    
     const iqHost = "https://solanacontractapi.uc.r.appspot.com"
 
     //const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
-    const response = await fetch(`${iqHost}/get-server-pda/A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6/${serverId}`);
+    // const response = await fetch(`${iqHost}/get-server-pda/A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6/${serverId}`);
+    const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
+    //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/test`);
+    console.log(`DEBUG: response : ${response.body}`)
+    console.log(`DEBUG: response : ${response.status}`)
 
     if (!pubkey) {
       return 'Error: No public key found';
     }
-    
+    console.log(`DEBUG: response : ${response}`)
     if (!response.ok) {
       if (response.status === 500) {
         return `Error: DBPDA not found for pubkey ${pubkey}`;
@@ -37,12 +48,13 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     }
     
     const data = await response.json();
-    if (data && data.DBPDA) {
-      console.log(`Fetched DBPDA for pubkey ${pubkey} | ${data.DBPDA}`);
+    console.log(`DEBUG: data : ${data}`)
+    if (data && data.PDA) {
+      console.log(`Fetched PDA: ${data.PDA}`);
 
-      return `Fetched DBPDA for pubkey ${pubkey} | ${data.DBPDA}`;
+      return `Fetched PDA: ${data.PDA}`;
     } else {
-      return 'Error: DBPDA not found in response';
+      return 'Error: PDA not found in response';
     }
   } catch (error) {
     console.error('API call failed:', error);
@@ -58,7 +70,7 @@ const processCommand = async (command: string, pubkey: string | null, phase: str
   // Handle ongoing phases first
   if (phase === 'waitingForServerId') {
   // Use this input as serverId and complete the action
-  const actionOutput = await handleChatServerAction(pubkey, cmd);  // cmd is the serverId
+  const actionOutput = await handleChatServerAction(cmd, pubkey);  // cmd is the serverId
   if (actionOutput.startsWith('Error:') || actionOutput.startsWith('API Error:')) {
     // Append prompt after error
     return { output: `${actionOutput}\nType your selection:` };
