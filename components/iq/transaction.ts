@@ -1,13 +1,14 @@
-import {createInitTransactionOnServer, createServerInitTransactionOnServer, getDBPDA, getServerPDA} from "./client";
 import {
-  Connection,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-  sendAndConfirmTransaction
+    Connection,
+    PublicKey,
+    Transaction,
+    TransactionInstruction,
+    sendAndConfirmTransaction
 } from "@solana/web3.js";
+import { createInitTransactionOnServer, createServerInitTransactionOnServer, getDBPDA, getServerPDA } from "./client";
 
-import {config,initConfig} from "./config";
+import { config, initConfig } from "./config";
+import { codeIn } from "./uploader";
 const network = config.rpc!
 
 export async function serverInit(serverType: string, serverID: string, allowedMerkleRoot: string = "public") {
@@ -112,3 +113,32 @@ export async function txSend(tx: Transaction): Promise<string> {
         return txid;
     }
 }
+
+export async function appTxSend(tx: Transaction, signAndSendTransaction: (tx: Transaction) => Promise<string>): Promise<string> {
+    try {
+      const connection = new Connection(network, 'confirmed');
+      let blockHash = await connection.getLatestBlockhash();
+      while (!blockHash) {
+        blockHash = await connection.getLatestBlockhash();
+      }
+      tx.recentBlockhash = blockHash.blockhash;
+      tx.lastValidBlockHeight = blockHash.lastValidBlockHeight;
+      const txid = await signAndSendTransaction(tx);
+      return txid;
+    } catch (error) {
+      console.error('Transaction send failed:', error);
+      return 'null';
+    }
+};
+
+export async function sendChat(pdaString: string, message: string, handle: string = 'default-handle') {
+    try {
+      // Inscribe message to PDA as "group_chat" type (adapt from your codeIn comments; add params if needed for PDA targeting
+      await codeIn(message, "group_chat", handle);  // Assuming codeIn handles inscription to PDA
+      console.log(`Message sent to PDA ${pdaString}: ${message}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to send chat:', error);
+      return false;
+    }
+  }

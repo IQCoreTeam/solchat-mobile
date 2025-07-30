@@ -1,6 +1,4 @@
-import {Connection, PublicKey, LogsFilter} from "@solana/web3.js";
-import {config} from "./config";
-import {getChunk, isMerkleRoot} from "./utils";
+import { Connection, PublicKey } from "@solana/web3.js";
 import {
     fetchChunksUntilComplete,
     getCacheFromServer,
@@ -8,6 +6,8 @@ import {
     getTransactionInfoOnServer,
     makeMerkleRootFromServer, putCacheToServer,
 } from "./client";
+import { config } from "./config";
+import { getChunk, isMerkleRoot } from "./utils";
 
 
 const network = config.rpc;
@@ -138,18 +138,19 @@ export async function getChatRecords(pdaString:string,sizeLimit:number, onMessag
     }
 
 }
-export async function joinChat(pdaString: string, onMessage: (msg: string) => void)  {
+export async function joinChat(pdaString: string, onMessage: (msg: string) => void): Promise<number> {
     const connection = new Connection(network, 'finalized');
     const chatPDA = new PublicKey(pdaString);
-    console.log(`Join chat on ${pdaString} ...`); // lets change this as a handle name (chat name)
-
-    connection.onLogs(
-        chatPDA,
-        async (logs, ctx) => {
-            const txDetails = await readChat(logs.signature);
-            if(txDetails) {
-                onMessage(txDetails);
-            }
+    console.log(`Join chat on ${pdaString} ...`);
+  
+    const subscriptionId = connection.onLogs(
+      chatPDA,
+      async (logs, ctx) => {
+        const txDetails = await readChat(logs.signature);
+        if (txDetails) {
+          onMessage(txDetails);
         }
+      }
     );
-}
+    return subscriptionId;  // Return for cleanup
+  }

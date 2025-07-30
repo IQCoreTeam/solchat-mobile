@@ -2,15 +2,16 @@ import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
 
+import IQ from '@/components/iq';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
-const NETWORK = clusterApiUrl('mainnet-beta');  // Adjust as needed
+const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
 const WELCOME_MESSAGE = `Welcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
 
 const pdaCheck = async (PDA: string) => {
@@ -51,8 +52,12 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     //console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
     const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
 
+    // working mainnet PDA - just enter 'test' when prompted for serverId
+    //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
+    
+    console.log(`DEBUG: fetching ${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
-    const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
+    const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
     console.log(`DEBUG: response body : ${response.body}`)
     console.log(`DEBUG: response status : ${response.status}`)
@@ -76,8 +81,8 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
         return { message: `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
       }
       else {
-        console.log(`PDA not found. Would you like to create a new server?`);  
-        return { message: 'PDA not found. Would you like to create a new server?'};
+        console.log(`PDA not found. Prompting user to create a new server`);  
+        return { message: 'PDA not found. Would you like to create a new server? [y/n]'};
       }
     } else {
       return { message: 'Error: could not find PDA from backend service'};
@@ -89,17 +94,88 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
 };
 
 // Handle joining a chat server
-const handleJoinChatServer = async (pda: string): Promise<string> => {
+const handleJoinChatServer = async (
+  pda: string,
+  onNewMessage: (msg: string) => void
+): Promise<{ message: string; subscriptionId: number | null }> => {
   console.log(`DEBUG: joining server with PDA: ${pda}`);
-  //const result = await IQ.joinServer(pda);
+  try {
+    // Assuming IQ.joinChat sets up the listener and returns the subscription ID
+    await IQ.getChatRecords(pda, 50, onNewMessage);  // Load past 50 messages
+    const subscriptionId = await IQ.joinChat(pda, onNewMessage);
+    return { message: 'Joined server successfully. Listening for messages...', subscriptionId };
+  } catch (error) {
+    console.error('Failed to join chat:', error);
+    return { message: 'Error joining server.', subscriptionId: null };
+  }
+};
 
-  return 'Joining server...';
+const handleCreateChatServer = async (serverId: string, pubkey: string | null, signAndSendTransaction: (tx: Transaction | VersionedTransaction, minContextSlot?: number) => Promise<string>): Promise<{ message: string, pda?: string }> => {  try {
+    if (!pubkey) throw new Error('No pubkey available');
+    const userKeyString = pubkey;
+    const PDA = await IQ.getServerPDA(userKeyString, serverId);
+    const isPDAExist = await pdaCheck(PDA);
+    if (isPDAExist) {
+      return { message: `Server already exists.\nPDA: ${PDA}\n\nJoin server? [y/n]`, pda: PDA };
+    }
+    const transactionData = await IQ.createServerInitTransactionOnServer(userKeyString, 'group_chat', serverId, 'public');
+    if (transactionData) {
+      const tx = await IQ._translate_transaction(transactionData);
+      const txid = await IQ.appTxSend(tx, signAndSendTransaction);
+      if (txid !== 'null') {
+        console.log(`Server created. TX: ${txid}`);
+        return { message: `Server created successfully.\nPDA: ${PDA}\n\nJoin server? [y/n]`, pda: PDA };
+      } else {
+        return { message: 'Transaction send failed.' };
+      }
+    } else {
+      return { message: 'Transaction build failed.' };
+    }
+  } catch (error) {
+    console.error('Create server failed:', error);
+    return { message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
+};
+
+const appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => Promise<Transaction>): Promise<string> => {
+  try {
+    const connection = new Connection(NETWORK, 'confirmed');  // Use your app's NETWORK (devnet)
+    let blockHash = await connection.getLatestBlockhash();
+    while (!blockHash) {  // Retry if undefined
+      blockHash = await connection.getLatestBlockhash();
+    }
+    tx.recentBlockhash = blockHash.blockhash;
+    tx.lastValidBlockHeight = blockHash.lastValidBlockHeight;
+    // feePayer should be set in the tx from backend (user's pubkey)
+    const signedTx = await signTransaction(tx);  // Wallet signs
+    const txid = await connection.sendTransaction(signedTx, [], { skipPreflight: true });  // Empty signers array, options third
+    await connection.confirmTransaction({
+      signature: txid,
+      blockhash: blockHash.blockhash,  // Add this
+      lastValidBlockHeight: blockHash.lastValidBlockHeight,
+    });
+    return txid;
+  } catch (error) {
+    console.error('Transaction send failed:', error);
+    return 'null';
+  }
 };
 
 // Command processing logic
-const processCommand = async (command: string, pubkey: string | null, phase: string, currentPDA?: string | null): Promise<{ output?: string; clear?: boolean; pda?: string }> => {  const cmd = command.trim().toLowerCase();
+const processCommand = async (command: string, pubkey: string | null, phase: string, currentPDA?: string | null): Promise<{ output?: string; clear?: boolean; pda?: string; joined?: boolean; created?: boolean }> => {  const cmd = command.trim().toLowerCase();
 
   if (cmd === '') return {};
+  if (phase === 'inChat') {
+    if (cmd === 'exit') {
+      return { output: 'Leaving chat...', clear: true };
+    }
+    const success = await IQ.sendChat(currentPDA!, command, 'your-handle');  // Dynamic handle if needed
+    if (success) {
+      return { output: `[You] ${command}` };  // Echo locally; listener adds on-chain
+    } else {
+      return { output: 'Error sending message.' };
+    }
+  }
   // Handle ongoing phases first
   if (phase === 'waitingForServerId') {
   // Use this input as serverId and complete the action
@@ -116,8 +192,7 @@ const processCommand = async (command: string, pubkey: string | null, phase: str
       if (!currentPDA) {
         return { output: 'Error: No PDA available for joining.' };
       }
-       const joinOutput = await handleJoinChatServer(currentPDA);
-      return { output: joinOutput };
+       return { output: 'Preparing to join...', joined: true };
     } else if (cmd === 'n' || cmd === 'no') {
       return { 
         output: [WELCOME_MESSAGE].join('\n')
@@ -126,6 +201,15 @@ const processCommand = async (command: string, pubkey: string | null, phase: str
       return { output: 'Please enter y or n:' };
     }
   } 
+  if (phase === 'waitingForCreateResponse') {
+    if (cmd === 'y' || cmd === 'yes') {
+      return { output: 'Preparing to create server...', created: true };  // Flag to trigger in component
+    } else if (cmd === 'n' || cmd === 'no') {
+      return { output: WELCOME_MESSAGE };
+    } else {
+      return { output: 'Please enter y or n:' };
+    }
+  }
   switch (cmd) {
     case 'clear':
       return { clear: true };
@@ -208,7 +292,7 @@ const CommandInput: React.FC<{
       value={command}
       onChangeText={setCommand}
       onSubmitEditing={onSubmit}
-      placeholder={phase === 'waitingForServerId' ? 'Server ID:' : 'Enter command...'}      placeholderTextColor="#888"
+      placeholder={phase === 'waitingForServerId' ? 'Server ID:' : phase === 'inChat' ? 'Type message...' : 'Enter command...'}      placeholderTextColor="#888"
       autoCapitalize="none"
       autoCorrect={false}
       returnKeyType="send"
@@ -219,14 +303,16 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
-    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse';
+    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse';
     pendingPubkey?: string | null;
     currentPDA?: string | null;
+    currentServerId?: string;
   }>({
     phase: 'idle',
   });
+  const subscriptionRef = useRef<number | null>(null);
   const [command, setCommand] = useState<string>('');
-  const { publicKey } = useWalletUi();
+  const { publicKey, signAndSendTransaction } = useWalletUi();
   const [pubkey, setPubkey] = useState<string | null>(null);
   useEffect(() => {
     setPubkey(publicKey?.toBase58() ?? null);
@@ -235,6 +321,25 @@ export default function TabSettingsScreen() {
   const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'welcome', output: WELCOME_MESSAGE }
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
+
+  const onNewMessage = (msg: string) => {
+    setHistory(prev => [
+      ...prev,
+      { id: Date.now().toString(), output: `[Message] ${msg}` }
+    ]);
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+  useEffect(() => {
+    return () => {
+      if (subscriptionRef.current !== null) {
+        const connection = new Connection(clusterApiUrl('devnet'), 'finalized');  // Match IQ's network
+        connection.removeOnLogsListener(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+    };
+  }, []);
 
   const handleCommandSubmit = async () => {
     if (command.trim() === '') return;
@@ -249,6 +354,7 @@ export default function TabSettingsScreen() {
         setHistory([]);
         setCommand('');
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+        return;
       }
 
       setHistory(prevHistory => {
@@ -263,6 +369,7 @@ export default function TabSettingsScreen() {
 
       // Update conversation state based on command
       const cmd = command.trim().toLowerCase();
+
       if (cmd === '1' && conversationState.phase === 'idle') {
         setConversationState(prev => ({ ...prev, phase: 'waitingForServerId', pendingPubkey: pubkey }));
       } else if (conversationState.phase === 'waitingForServerId') {
@@ -271,15 +378,54 @@ export default function TabSettingsScreen() {
           setConversationState(prev => ({ 
                        ...prev, 
                      phase: 'waitingForJoinResponse', 
-                       pendingPubkey: pubkey,
+                     pendingPubkey: pubkey,
                      currentPDA: result.pda || prev.currentPDA  // Use result.pda if available
+          }));        
+        } else if (result.output && result.output.includes('create a new server? [y/n]')) {
+          setConversationState(prev => ({ 
+            ...prev, 
+            phase: 'waitingForCreateResponse', 
+            currentServerId: command.trim(),
           }));        
         } else {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
       } else if (conversationState.phase === 'waitingForJoinResponse') {
-        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));  // Optional: clear PDA after join  // Reset after join response
+        if (!result.joined) {
+          setConversationState(prev => ({ ...prev, phase: 'idle' }));
+        }
       }  
+
+     if (result.joined && conversationState.currentPDA) {
+         const { message: joinOutput, subscriptionId } = await handleJoinChatServer(conversationState.currentPDA, onNewMessage);
+         subscriptionRef.current = subscriptionId;
+         setHistory(prev => {
+           const lastItem = prev[prev.length - 1];
+           if (lastItem.output === 'Preparing to join...') {
+             // Replace dummy output
+             return [...prev.slice(0, -1), { ...lastItem, output: joinOutput }];
+           }
+           return [...prev, { id: Date.now().toString(), output: joinOutput }];
+         });
+         setConversationState(prev => ({ ...prev, phase: 'inChat' }));
+       }
+
+       if (result.created && conversationState.currentServerId && pubkey) {
+        const createResult = await handleCreateChatServer(conversationState.currentServerId, pubkey, signAndSendTransaction);
+        setHistory(prev => {
+          const lastItem = prev[prev.length - 1];
+          if (lastItem.output === 'Preparing to create server...') {
+            return [...prev.slice(0, -1), { ...lastItem, output: createResult.message }];
+          }
+          return [...prev, { id: Date.now().toString(), output: createResult.message }];
+        });
+        if (createResult.pda) {
+          setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse', currentPDA: createResult.pda }));
+        } else {
+          setConversationState(prev => ({ ...prev, phase: 'idle' }));
+        }
+      }
+
 
       // Scroll to bottom after state updates
       setTimeout(() => {
@@ -298,7 +444,7 @@ export default function TabSettingsScreen() {
           }
         ];
       });
-      setConversationState(prev => ({ ...prev, phase: 'idle' }));
+      setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
     }
   };
 
