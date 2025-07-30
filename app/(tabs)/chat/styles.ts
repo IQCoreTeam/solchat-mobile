@@ -37,12 +37,13 @@ const styles = StyleSheet.create({
   },
   inputText: {
     color: '#0f0',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
+    fontWeight: 'bold',
     fontSize: 16,
     marginVertical: 2,
   },
   outputText: {
-    color: '#fff',
+    color: '#ccc',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontSize: 16,
     marginVertical: 2,
