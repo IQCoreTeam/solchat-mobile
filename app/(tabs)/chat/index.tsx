@@ -1,6 +1,8 @@
 import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
+import IQ from '@/components/iq';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
@@ -42,14 +44,14 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: in handleChatServerAction`)
     console.log(`DEBUG: serverId : ${serverId}`)
     console.log(`DEBUG: pubkey : ${pubkey}`)
-    
-    
+
+    const pubkeyFromSdk = await IQ.getMyPublicKey();
+    console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
     const iqHost = "https://solanacontractapi.uc.r.appspot.com"
 
-    //const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
-    // const response = await fetch(`${iqHost}/get-server-pda/A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6/${serverId}`);
+
     const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
-    //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/test`);
+
     console.log(`DEBUG: response : ${response.body}`)
     console.log(`DEBUG: response : ${response.status}`)
     
