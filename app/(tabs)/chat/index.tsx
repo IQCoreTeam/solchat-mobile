@@ -35,7 +35,7 @@ interface HistoryItem {
 
 
 // Simple test API call
-const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<string> => {
+const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<{ message: string, pda?: string }> => {
   try {
     // valid wallet
     // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
@@ -60,7 +60,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: response : ${response}`)
     if (!response.ok) {
       if (response.status === 500) {
-        return `Error: PDA not found`;
+        return { message: 'Error: PDA not found'};
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -72,46 +72,51 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
       const pdaCheckResult = await pdaCheck(data.PDA);
       console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
       if (pdaCheckResult) {
-        console.log(`PDA found: ${pdaCheckResult}`);  
-        return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
+        console.log(`PDA found: ${pdaCheckResult}`);
+        return { message: `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
       }
       else {
         console.log(`PDA not found. Would you like to create a new server?`);  
-        return `PDA not found. Would you like to create a new server?`;
+        return { message: 'PDA not found. Would you like to create a new server?'};
       }
     } else {
-      return 'Error: could not find PDA from backend service';
+      return { message: 'Error: could not find PDA from backend service'};
     }
   } catch (error) {
     console.error('API call failed:', error);
-    return `API Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
+    return { message: 'API Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')};
   }
 };
 
 // Handle joining a chat server
-const handleJoinChatServer = async (): Promise<string> => {
+const handleJoinChatServer = async (pda: string): Promise<string> => {
+  console.log(`DEBUG: joining server with PDA: ${pda}`);
+  //const result = await IQ.joinServer(pda);
+
   return 'Joining server...';
 };
 
 // Command processing logic
-const processCommand = async (command: string, pubkey: string | null, phase: string): Promise<{ output?: string; clear?: boolean }> => {
-  const cmd = command.trim().toLowerCase();
+const processCommand = async (command: string, pubkey: string | null, phase: string, currentPDA?: string | null): Promise<{ output?: string; clear?: boolean; pda?: string }> => {  const cmd = command.trim().toLowerCase();
 
   if (cmd === '') return {};
   // Handle ongoing phases first
   if (phase === 'waitingForServerId') {
   // Use this input as serverId and complete the action
   const actionOutput = await handleChatServerAction(cmd, pubkey);  // cmd is the serverId
-  if (actionOutput.startsWith('Error:') || actionOutput.startsWith('API Error:')) {
+  if (actionOutput.message.startsWith('Error:') || actionOutput.message.startsWith('API Error:')) {
     // Append prompt after error
-    return { output: `${actionOutput}\nType your selection:` };
+    return { output: `${actionOutput.message}\nType your selection:` };
   }
-return { output: actionOutput };
+  return { output: actionOutput.message, pda: actionOutput.pda };
 } 
 
   if (phase === 'waitingForJoinResponse') {
     if (cmd === 'y' || cmd === 'yes') {
-      const joinOutput = await handleJoinChatServer();
+      if (!currentPDA) {
+        return { output: 'Error: No PDA available for joining.' };
+      }
+       const joinOutput = await handleJoinChatServer(currentPDA);
       return { output: joinOutput };
     } else if (cmd === 'n' || cmd === 'no') {
       return { 
@@ -216,6 +221,7 @@ export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
     phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse';
     pendingPubkey?: string | null;
+    currentPDA?: string | null;
   }>({
     phase: 'idle',
   });
@@ -238,13 +244,11 @@ export default function TabSettingsScreen() {
     setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);
     
     try {
-      const result = await processCommand(command, pubkey, conversationState.phase);
-      
+      const result = await processCommand(command, pubkey, conversationState.phase, conversationState.currentPDA);      
       if (result.clear) {
         setHistory([]);
         setCommand('');
-        setConversationState({ phase: 'idle' });  
-        return;
+        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
       }
 
       setHistory(prevHistory => {
@@ -260,16 +264,21 @@ export default function TabSettingsScreen() {
       // Update conversation state based on command
       const cmd = command.trim().toLowerCase();
       if (cmd === '1' && conversationState.phase === 'idle') {
-        setConversationState({ phase: 'waitingForServerId', pendingPubkey: pubkey });
+        setConversationState(prev => ({ ...prev, phase: 'waitingForServerId', pendingPubkey: pubkey }));
       } else if (conversationState.phase === 'waitingForServerId') {
         // Check if the output contains the join prompt
         if (result.output && result.output.includes('Join server? [y/n]')) {
-          setConversationState({ phase: 'waitingForJoinResponse', pendingPubkey: pubkey });
+          setConversationState(prev => ({ 
+                       ...prev, 
+                     phase: 'waitingForJoinResponse', 
+                       pendingPubkey: pubkey,
+                     currentPDA: result.pda || prev.currentPDA  // Use result.pda if available
+          }));        
         } else {
-          setConversationState({ phase: 'idle' });  // Reset after completion
+          setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
       } else if (conversationState.phase === 'waitingForJoinResponse') {
-        setConversationState({ phase: 'idle' });  // Reset after join response
+        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));  // Optional: clear PDA after join  // Reset after join response
       }  
 
       // Scroll to bottom after state updates
@@ -289,7 +298,7 @@ export default function TabSettingsScreen() {
           }
         ];
       });
-      setConversationState({ phase: 'idle' });
+      setConversationState(prev => ({ ...prev, phase: 'idle' }));
     }
   };
 
