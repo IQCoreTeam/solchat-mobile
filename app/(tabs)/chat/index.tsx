@@ -1,7 +1,6 @@
 import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
-import IQ from '@/components/iq';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -11,7 +10,7 @@ import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, 
 import styles from './styles';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
-const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
+const NETWORK = clusterApiUrl('mainnet-beta');  // Adjust as needed
 
 const pdaCheck = async (PDA: string) => {
   try {
@@ -45,25 +44,22 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: serverId : ${serverId}`)
     console.log(`DEBUG: pubkey : ${pubkey}`)
 
-    const pubkeyFromSdk = await IQ.getMyPublicKey();
-    await IQ.userInit();
-    await IQ.codeIn("Hello World", "app-test", "example-handle");
-    console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
+    //const pubkeyFromSdk = await IQ.getMyPublicKey();
+    //await IQ.userInit();
+    //await IQ.codeIn("Hello World", "app-test", "example-handle");
+    //console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
     const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
 
 
     const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
 
-    console.log(`DEBUG: response : ${response.body}`)
-    console.log(`DEBUG: response : ${response.status}`)
+    console.log(`DEBUG: response body : ${response.body}`)
+    console.log(`DEBUG: response status : ${response.status}`)
     
-    if (!pubkey) {
-      return 'Error: No public key found';
-    }
     console.log(`DEBUG: response : ${response}`)
     if (!response.ok) {
       if (response.status === 500) {
-        return `Error: DBPDA not found for pubkey ${pubkey}`;
+        return `Error: PDA not found`;
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -73,6 +69,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     if (data && data.PDA) {
       console.log(`Fetched PDA: ${data.PDA}`);
       const pdaCheckResult = await pdaCheck(data.PDA);
+      console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
       if (pdaCheckResult) {
         console.log(`PDA found: ${pdaCheckResult}`);  
         return `PDA found: ${pdaCheckResult}`;
@@ -222,7 +219,7 @@ export default function TabSettingsScreen() {
 
     const newEntry: HistoryItem = { id: Date.now().toString(), input: `> ${command}` };
     // Add the command to history immediately
-    setHistory(prevHistory => [...prevHistory, newEntry]);
+    setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);
     
     try {
       const result = await processCommand(command, pubkey, conversationState.phase);
@@ -234,10 +231,14 @@ export default function TabSettingsScreen() {
         return;
       }
 
-      setHistory(prevHistory => [
-        ...prevHistory,
-        { id: (Date.now() + 1).toString(), output: result.output }
-      ]);
+      setHistory(prevHistory => {
+        // Remove any loading message before adding the result
+        const filtered = prevHistory.filter(item => item.id !== 'loading');
+        return [
+          ...filtered,
+          { id: (Date.now() + 1).toString(), output: result.output }
+        ];
+      });
       setCommand('');
 
       // Update conversation state based on command
@@ -254,13 +255,17 @@ export default function TabSettingsScreen() {
       }, 100);
     } catch (error) {
       console.error('Error processing command:', error);
-      setHistory(prevHistory => [
-        ...prevHistory,
-        { 
-          id: (Date.now() + 1).toString(), 
-          output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` 
-        }
-      ]);
+      setHistory(prevHistory => {
+        // Remove any loading message before adding the error
+        const filtered = prevHistory.filter(item => item.id !== 'loading');
+        return [
+          ...filtered,
+          { 
+            id: (Date.now() + 1).toString(), 
+            output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` 
+          }
+        ];
+      });
       setConversationState({ phase: 'idle' });
     }
   };
