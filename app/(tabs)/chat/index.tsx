@@ -11,6 +11,7 @@ import styles from './styles';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('mainnet-beta');  // Adjust as needed
+const WELCOME_MESSAGE = `Welcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
 
 const pdaCheck = async (PDA: string) => {
   try {
@@ -72,7 +73,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
       console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
       if (pdaCheckResult) {
         console.log(`PDA found: ${pdaCheckResult}`);  
-        return `PDA found: ${pdaCheckResult}`;
+        return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
       }
       else {
         console.log(`PDA not found. Would you like to create a new server?`);  
@@ -85,6 +86,11 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.error('API call failed:', error);
     return `API Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
   }
+};
+
+// Handle joining a chat server
+const handleJoinChatServer = async (): Promise<string> => {
+  return 'Joining server...';
 };
 
 // Command processing logic
@@ -102,6 +108,19 @@ const processCommand = async (command: string, pubkey: string | null, phase: str
   }
 return { output: actionOutput };
 } 
+
+  if (phase === 'waitingForJoinResponse') {
+    if (cmd === 'y' || cmd === 'yes') {
+      const joinOutput = await handleJoinChatServer();
+      return { output: joinOutput };
+    } else if (cmd === 'n' || cmd === 'no') {
+      return { 
+        output: [WELCOME_MESSAGE].join('\n')
+      };
+    } else {
+      return { output: 'Please enter y or n:' };
+    }
+  } 
   switch (cmd) {
     case 'clear':
       return { clear: true };
@@ -195,7 +214,7 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
-    phase: 'idle' | 'waitingForServerId';
+    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse';
     pendingPubkey?: string | null;
   }>({
     phase: 'idle',
@@ -206,9 +225,6 @@ export default function TabSettingsScreen() {
   useEffect(() => {
     setPubkey(publicKey?.toBase58() ?? null);
   },  [publicKey]);
-
-
-  const WELCOME_MESSAGE = `Welcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
 
   const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'welcome', output: WELCOME_MESSAGE }
@@ -246,7 +262,14 @@ export default function TabSettingsScreen() {
       if (cmd === '1' && conversationState.phase === 'idle') {
         setConversationState({ phase: 'waitingForServerId', pendingPubkey: pubkey });
       } else if (conversationState.phase === 'waitingForServerId') {
-        setConversationState({ phase: 'idle' });  // Reset after completion
+        // Check if the output contains the join prompt
+        if (result.output && result.output.includes('Join server? [y/n]')) {
+          setConversationState({ phase: 'waitingForJoinResponse', pendingPubkey: pubkey });
+        } else {
+          setConversationState({ phase: 'idle' });  // Reset after completion
+        }
+      } else if (conversationState.phase === 'waitingForJoinResponse') {
+        setConversationState({ phase: 'idle' });  // Reset after join response
       }  
 
       // Scroll to bottom after state updates
