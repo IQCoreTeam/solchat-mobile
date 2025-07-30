@@ -11,7 +11,7 @@ import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, 
 import styles from './styles';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
-const NETWORK = clusterApiUrl('mainnet-beta');  // Adjust as needed
+const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
 
 const pdaCheck = async (PDA: string) => {
   try {
@@ -46,8 +46,10 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: pubkey : ${pubkey}`)
 
     const pubkeyFromSdk = await IQ.getMyPublicKey();
+    await IQ.userInit();
+    await IQ.codeIn("Hello World", "app-test", "example-handle");
     console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
-    const iqHost = "https://solanacontractapi.uc.r.appspot.com"
+    const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
 
 
     const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
