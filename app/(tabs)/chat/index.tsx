@@ -3,10 +3,25 @@ import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
 
+// Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
+const NETWORK = clusterApiUrl('mainnet-beta');  // Adjust as needed
+
+const pdaCheck = async (PDA: string) => {
+  try {
+    const PDAPubkey = new PublicKey(PDA);
+    const connection = new Connection(NETWORK);
+
+    return await connection.getAccountInfo(PDAPubkey);
+  } catch (error) {
+    console.error("PDA Check failed:", error);
+    return null;  // Or throw error, depending on your needs
+  }
+};
 
 // TypeScript interface for history items
 interface HistoryItem {
@@ -14,6 +29,8 @@ interface HistoryItem {
   input?: string;
   output?: string;
 }
+
+
 
 // Simple test API call
 const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<string> => {
@@ -35,7 +52,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/test`);
     console.log(`DEBUG: response : ${response.body}`)
     console.log(`DEBUG: response : ${response.status}`)
-
+    
     if (!pubkey) {
       return 'Error: No public key found';
     }
@@ -51,10 +68,17 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: data : ${data}`)
     if (data && data.PDA) {
       console.log(`Fetched PDA: ${data.PDA}`);
-
-      return `Fetched PDA: ${data.PDA}`;
+      const pdaCheckResult = await pdaCheck(data.PDA);
+      if (pdaCheckResult) {
+        console.log(`PDA found: ${pdaCheckResult}`);  
+        return `PDA found: ${pdaCheckResult}`;
+      }
+      else {
+        console.log(`PDA not found. Would you like to create a new server?`);  
+        return `PDA not found. Would you like to create a new server?`;
+      }
     } else {
-      return 'Error: PDA not found in response';
+      return 'Error: could not find PDA from backend service';
     }
   } catch (error) {
     console.error('API call failed:', error);
