@@ -87,7 +87,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
       console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
       if (pdaCheckResult) {
         console.log(`PDA found: ${pdaCheckResult}`);
-        return { message: `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
+        return { message: `Located server at PDA\n${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
       }
       else {
         console.log(`PDA not found. Prompting user to create a new server`);  
@@ -109,8 +109,17 @@ const handleJoinChatServer = async (
 ): Promise<{ message: string; subscriptionId: number | null }> => {
   console.log(`DEBUG: joining server with PDA: ${pda}`);
   try {
-    // Assuming IQ.joinChat sets up the listener and returns the subscription ID
-    await IQ.getChatRecords(pda, 50, onNewMessage);  // Load past 50 messages
+    // Determine how many historical messages are available
+    const sigs = await IQ.fetchDataSignatures(pda, 100);
+    const count = sigs.length;
+    const loadingBanner = `[Server] Loading ${count} messages ...`;
+
+    // Show loading banner first
+    onNewMessage(loadingBanner);
+
+    // Fetch historical messages
+    await IQ.getChatRecords(pda, 50, onNewMessage);
+
     const subscriptionId = await IQ.joinChat(pda, onNewMessage);
     return { message: 'Joined server successfully. Listening for messages...', subscriptionId };
   } catch (error) {
@@ -310,7 +319,13 @@ const CommandHistory: React.FC<{
     <View>
       {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}
       {item.output && (
-          <AppText style={item.output.startsWith('[Message]') ? [styles.messageText, {color: messageColor}] : styles.outputText}>
+          <AppText style={
+              item.output.startsWith('[Message]')
+                ? [styles.messageText, { color: messageColor }]
+                : item.output.startsWith('[Server]')
+                ? styles.prompt // use same green as prompts
+                : styles.outputText
+            }>
             {item.output}
           </AppText>
         )}
@@ -386,7 +401,7 @@ export default function TabSettingsScreen() {
   const onNewMessage = (msg: string) => {
     setHistory(prev => [
       ...prev,
-      { id: uniqueId(), output: `[Message] ${msg}` }
+      { id: uniqueId(), output: msg.startsWith('[') ? msg : `[Message] ${msg}` }
     ]);
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -422,7 +437,12 @@ export default function TabSettingsScreen() {
           connection.removeOnLogsListener(subscriptionRef.current);
           subscriptionRef.current = null;
         }
-        setHistory([{ id: uniqueId(), output: WELCOME_MESSAGE }]);
+        setHistory(prev => [
+          ...prev,
+          { id: uniqueId(), output: '[Server] Disconnecting...' },
+          { id: uniqueId(), output: '-------------------------------------' },
+          { id: uniqueId(), output: WELCOME_MESSAGE }
+        ]);
         setMessageColor('#1e90ff');
         setCommand('');
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
