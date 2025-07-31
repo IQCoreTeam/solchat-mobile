@@ -33,7 +33,14 @@ interface HistoryItem {
   output?: string;
 }
 
-
+interface CommandResult {
+  output?: string;
+  clear?: boolean;
+  pda?: string;
+  joined?: boolean;
+  created?: boolean;
+  nickname?: string;   // ← new field
+}
 
 // Simple test API call
 const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<{ message: string, pda?: string }> => {
@@ -162,17 +169,30 @@ const appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => 
 };
 
 // Command processing logic
-const processCommand = async (command: string, pubkey: string | null, phase: string, currentPDA?: string | null): Promise<{ output?: string; clear?: boolean; pda?: string; joined?: boolean; created?: boolean }> => {  const cmd = command.trim().toLowerCase();
+const processCommand = async (
+  command: string, 
+  pubkey: string | null, 
+  phase: string, 
+  currentPDA?: string | null,
+  nickname?: string | null      // ← allow null/undefined
+): Promise<CommandResult> => {  
+  
+  const cmd = command.trim().toLowerCase();
 
   if (cmd === '') return {};
   if (phase === 'inChat') {
     if (cmd === 'exit') {
       return { output: 'Leaving chat...', clear: true };
     }
-    const success = await IQ.sendChat(currentPDA!, command, 'your-handle');  // Dynamic handle if needed
+    const success = await IQ.sendChat(
+      currentPDA!,
+      command,
+      nickname ?? 'anonymous'
+    );
     if (success) {
-      return { output: `[You] ${command}` };  // Echo locally; listener adds on-chain
-    } else {
+      return { output: `[${nickname}] ${command}` };
+    }
+    else {
       return { output: 'Error sending message.' };
     }
   }
@@ -210,6 +230,14 @@ const processCommand = async (command: string, pubkey: string | null, phase: str
       return { output: 'Please enter y or n:' };
     }
   }
+  if (phase === 'waitingForHandle') {
+    if (cmd.length === 0) return { output: 'Nickname cannot be empty:' };
+    return {
+      output: `Nickname set to ${cmd}. Start chatting!`,
+      nickname: cmd,
+    };  // custom field we’ll use below
+  }
+
   switch (cmd) {
     case 'clear':
       return { clear: true };
@@ -303,10 +331,11 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
-    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse';
+    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle';
     pendingPubkey?: string | null;
     currentPDA?: string | null;
     currentServerId?: string;
+    nickname?: string | null;
   }>({
     phase: 'idle',
   });
@@ -349,11 +378,33 @@ export default function TabSettingsScreen() {
     setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);
     
     try {
-      const result = await processCommand(command, pubkey, conversationState.phase, conversationState.currentPDA);      
+      const result = await processCommand(command, 
+                                          pubkey, 
+                                          conversationState.phase,
+                                          conversationState.currentPDA,
+                                          conversationState.nickname);      
       if (result.clear) {
         setHistory([]);
         setCommand('');
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+        return;
+      }
+
+      if (result.nickname) {
+        // Remove loading entry and add nickname confirmation
+        setHistory(prev => {
+          const filtered = prev.filter(item => item.id !== 'loading');
+          return [
+            ...filtered,
+            { id: Date.now().toString(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
+          ];
+        });
+        setCommand('');
+        setConversationState(prev => ({
+          ...prev,
+          phase: 'inChat',
+          nickname: result.nickname,
+        }));
         return;
       }
 
@@ -407,7 +458,13 @@ export default function TabSettingsScreen() {
            }
            return [...prev, { id: Date.now().toString(), output: joinOutput }];
          });
-         setConversationState(prev => ({ ...prev, phase: 'inChat' }));
+         setHistory(prev => [
+          ...prev,
+          { id: Date.now().toString(), output: 'Choose a nickname:' },
+        ]);
+        setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));
+        return; 
+         //setConversationState(prev => ({ ...prev, phase: 'inChat' }));
        }
 
        if (result.created && conversationState.currentServerId && pubkey) {

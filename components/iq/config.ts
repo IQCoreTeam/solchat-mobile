@@ -1,5 +1,5 @@
-import { Keypair } from '@solana/web3.js';
 import { getAppKeypair } from '@/components/account/app-keypair-manager';
+import { Keypair, Transaction, VersionedTransaction } from '@solana/web3.js';
 
 export const config = {
   rpc: "https://devnet.helius-rpc.com/?api-key=ab1858fe-4f28-46e6-b2c8-5fe8119f9852",
@@ -7,6 +7,9 @@ export const config = {
   keypair: null as Keypair | null,
   transactionSizeLimit: 900,
   sizeLimitForSplitCompression: 10000,
+  signAndSendTransaction: undefined as
+  | ((tx: Transaction | VersionedTransaction, minContextSlot?: number) => Promise<string>)
+  | undefined,
 };
 
 export async function initConfig() {

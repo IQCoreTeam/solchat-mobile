@@ -1,4 +1,5 @@
-import { useIQWallet } from '@/components/solana/use-iq-wallet'
+
+import { useIQWallet } from '@/components/solana/use-iq-wallet';
 
 export function useWalletUi() {
   const {
@@ -11,6 +12,8 @@ export function useWalletUi() {
     signAndSendTransaction,
   } = useIQWallet()
 
+
+  
   return {
     publicKey,
     account,
