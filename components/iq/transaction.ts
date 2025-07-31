@@ -137,7 +137,7 @@ export async function sendChat(pdaString: string, message: string, handle: strin
       const txid = await codeToPDA(message, "group_chat", handle, pdaString, 0);
       console.log(`Message sent to PDA ${pdaString}: ${message}`);
       console.log(`[sendChat] Transaction ID: ${txid}`);
-      return !!txid;
+      return txid;
     } catch (error) {
       console.error('Failed to send chat:', error);
       return false;

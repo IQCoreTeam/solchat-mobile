@@ -193,8 +193,9 @@ const processCommand = async (
       command,
       nickname ?? 'anonymous'
     );
+
     if (success) {
-      return { output: `[${nickname}] ${command}` };
+      return { output: `[Sent] ${success}` };
     }
     else {
       return { output: 'Error sending message.' };
