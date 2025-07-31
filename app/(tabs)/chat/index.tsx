@@ -443,6 +443,9 @@ export default function TabSettingsScreen() {
           { id: uniqueId(), output: '-------------------------------------' },
           { id: uniqueId(), output: WELCOME_MESSAGE }
         ]);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
         setMessageColor('#1e90ff');
         setCommand('');
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
@@ -456,19 +459,22 @@ export default function TabSettingsScreen() {
        if (result.nickname) {
         // Remove loading entry and add nickname confirmation
         setHistory(prev => {
-          const filtered = prev.filter(item => item.id !== 'loading');
-          return [
-            ...filtered,
-            { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
-          ];
-        });
-        setCommand('');
-        setConversationState(prev => ({
-          ...prev,
-          phase: 'inChat',
-          nickname: result.nickname,
-        }));
-        return;
+           const filtered = prev.filter(item => item.id !== 'loading');
+           return [
+             ...filtered,
+             { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
+           ];
+         });
+         setTimeout(() => {
+           flatListRef.current?.scrollToEnd({ animated: true });
+         }, 100);
+         setCommand('');
+         setConversationState(prev => ({
+           ...prev,
+           phase: 'inChat',
+           nickname: result.nickname,
+         }));
+         return;
       }
 
       setHistory(prevHistory => {
