@@ -415,7 +415,14 @@ export default function TabSettingsScreen() {
                                           conversationState.currentPDA,
                                           conversationState.nickname);      
       if (result.clear) {
-        setHistory([]);
+        // Unsubscribe from any active chat log listener
+        if (subscriptionRef.current !== null) {
+          const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
+          connection.removeOnLogsListener(subscriptionRef.current);
+          subscriptionRef.current = null;
+        }
+        setHistory([{ id: uniqueId(), output: WELCOME_MESSAGE }]);
+        setMessageColor('#1e90ff');
         setCommand('');
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
         return;
