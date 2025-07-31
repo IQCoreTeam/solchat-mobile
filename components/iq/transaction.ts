@@ -8,7 +8,7 @@ import {
 import { createInitTransactionOnServer, createServerInitTransactionOnServer, getDBPDA, getServerPDA } from "./client";
 
 import { config, initConfig } from "./config";
-import { codeIn } from "./uploader";
+import { codeToPDA } from './uploader';
 const network = config.rpc!
 
 export async function serverInit(serverType: string, serverID: string, allowedMerkleRoot: string = "public") {
@@ -46,7 +46,7 @@ export async function userInit() {
 
     const isPDAExist = await pdaCheck(PDA);
     if (isPDAExist) {
-        console.log("PDA Exist");
+        console.log(`PDA Exists: ${PDA}`);
         return PDA
     }
 
@@ -133,8 +133,8 @@ export async function appTxSend(tx: Transaction, signAndSendTransaction: (tx: Tr
 
 export async function sendChat(pdaString: string, message: string, handle: string = 'default-handle') {
     try {
-      // Inscribe message to PDA and log resulting transaction ID
-      const txid = await codeIn(message, "group_chat", handle);
+      // Inscribe message directly to the server PDA so it shows up in history
+      const txid = await codeToPDA(message, "group_chat", handle, pdaString, 0);
       console.log(`Message sent to PDA ${pdaString}: ${message}`);
       console.log(`[sendChat] Transaction ID: ${txid}`);
       return !!txid;

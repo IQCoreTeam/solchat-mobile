@@ -169,6 +169,9 @@ const appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => 
   }
 };
 
+// Helper to generate unique IDs for history items
+const uniqueId = () => `${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+
 // Command processing logic
 const processCommand = async (
   command: string, 
@@ -355,7 +358,7 @@ export default function TabSettingsScreen() {
   const onNewMessage = (msg: string) => {
     setHistory(prev => [
       ...prev,
-      { id: Date.now().toString(), output: `[Message] ${msg}` }
+      { id: uniqueId(), output: `[Message] ${msg}` }
     ]);
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -374,7 +377,7 @@ export default function TabSettingsScreen() {
   const handleCommandSubmit = async () => {
     if (command.trim() === '') return;
 
-    const newEntry: HistoryItem = { id: Date.now().toString(), input: `> ${command}` };
+    const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
     // Add the command to history immediately
     setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);
     
@@ -397,7 +400,7 @@ export default function TabSettingsScreen() {
           const filtered = prev.filter(item => item.id !== 'loading');
           return [
             ...filtered,
-            { id: Date.now().toString(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
+            { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
           ];
         });
         setCommand('');
@@ -414,7 +417,7 @@ export default function TabSettingsScreen() {
         const filtered = prevHistory.filter(item => item.id !== 'loading');
         return [
           ...filtered,
-          { id: (Date.now() + 1).toString(), output: result.output }
+          { id: uniqueId(), output: result.output }
         ];
       });
       setCommand('');
@@ -455,13 +458,13 @@ export default function TabSettingsScreen() {
            const lastItem = prev[prev.length - 1];
            if (lastItem.output === 'Preparing to join...') {
              // Replace dummy output
-             return [...prev.slice(0, -1), { ...lastItem, output: joinOutput }];
+             return [...prev.slice(0, -1), { ...lastItem, output: joinOutput, id: uniqueId() }];
            }
-           return [...prev, { id: Date.now().toString(), output: joinOutput }];
+           return [...prev, { id: uniqueId(), output: joinOutput }];
          });
          setHistory(prev => [
           ...prev,
-          { id: Date.now().toString(), output: 'Choose a nickname:' },
+          { id: uniqueId(), output: 'Choose a nickname:' },
         ]);
         setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));
         return; 
@@ -475,7 +478,7 @@ export default function TabSettingsScreen() {
           if (lastItem.output === 'Preparing to create server...') {
             return [...prev.slice(0, -1), { ...lastItem, output: createResult.message }];
           }
-          return [...prev, { id: Date.now().toString(), output: createResult.message }];
+          return [...prev, { id: uniqueId(), output: createResult.message }];
         });
         if (createResult.pda) {
           setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse', currentPDA: createResult.pda }));
@@ -497,7 +500,7 @@ export default function TabSettingsScreen() {
         return [
           ...filtered,
           { 
-            id: (Date.now() + 1).toString(), 
+            id: uniqueId(), 
             output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` 
           }
         ];

@@ -115,9 +115,12 @@ export async function getChatRecords(pdaString: string, sizeLimit: number, onMes
 
     const chatPDA = new PublicKey(pdaString);
     try {
+        console.log(`Using RPC: ${network}`);
         const signatures = await connection.getSignaturesForAddress(chatPDA, {
             limit: sizeLimit ?? 100,
         });
+
+        console.log(`[getChatRecords] DEBUG: signatures: ${signatures} `)
 
         if (signatures.length === 0) {
             console.log('[getChatRecords] No signatures found');
