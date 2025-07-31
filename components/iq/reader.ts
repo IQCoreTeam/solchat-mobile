@@ -72,7 +72,14 @@ async function readChat(dataTxid: string) {
         } else {
             result = await getTransactionDataFromBlockchainOnServer(dataTxid);
         }
-       return handle + ": " + result;
+        if (result === null) {
+            return handle + ': Error fetching data from blockchain';
+        }
+        if (typeof result === 'string' && result.includes('Error fetching data from blockchain')) {
+            console.warn(`[readChat] Placeholder data for ${dataTxid}, skipping emit until retry succeeds`);
+            return undefined;
+        }
+        return handle + ": " + result;
     }
 }
 

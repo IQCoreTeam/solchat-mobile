@@ -347,21 +347,32 @@ export async function getTransactionInfoOnServer(txId: string) {
     }
 }
 
-export async function getTransactionDataFromBlockchainOnServer(txId: string) {
+export async function getTransactionDataFromBlockchainOnServer(
+  txId: string,
+  maxRetries: number = 5,
+  delayMs: number = 2000,
+): Promise<string | null> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-        const response = await fetch(iqHost + `/get_transaction_result/${txId}`);
-        if (response.ok) {
-            try {
-                return response.text();
-            } catch (error) {
-                console.error("Error getting transaction:", error);
-                return null;
-            }
+      const response = await fetch(iqHost + `/get_transaction_result/${txId}`);
+      if (response.ok) {
+        const text = await response.text();
+        // Backend sometimes returns error string even with 200 status when data is not yet available
+        if (!text.includes('Error fetching data from blockchain')) {
+          return text;
         }
-        console.error("Error getting transaction:", txId);
-        return null;
+        console.warn(`[getTransactionDataFromBlockchainOnServer] Attempt ${attempt}: backend returned placeholder error, retrying...`);
+      } else {
+        console.warn(`[getTransactionDataFromBlockchainOnServer] Attempt ${attempt}: HTTP ${response.status} ${response.statusText}`);
+      }
     } catch (error) {
-        console.error("Error creating initTransactionOnServer:", error);
-        return null;
+      console.error(`[getTransactionDataFromBlockchainOnServer] Attempt ${attempt} failed:`, error);
     }
+
+    if (attempt < maxRetries) {
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+  console.error(`[getTransactionDataFromBlockchainOnServer] All ${maxRetries + 1} attempts failed for tx ${txId}`);
+  return null;
 }
