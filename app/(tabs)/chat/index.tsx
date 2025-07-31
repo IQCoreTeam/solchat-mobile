@@ -280,7 +280,7 @@ const processCommand = async (
       return { output: 'Enter Server ID:' };  
 
     case '2':
-      return { output: 'Entering chat room... (not yet implemented)' };
+      return { output: 'Enter PDA:' };
       //TODO: make the error message when user do any on-chain action without the gas fee.
     default:
       if (cmd.startsWith('echo ')) {
@@ -361,7 +361,7 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
-    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle';
+    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle'| 'waitingForPdaInput';
     pendingPubkey?: string | null;
     currentPDA?: string | null;
     currentServerId?: string;
@@ -489,6 +489,25 @@ export default function TabSettingsScreen() {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
       }  
+    if (cmd === '2' && conversationState.phase === 'idle') {
+      // Enter chat room
+      setConversationState(prev => ({ ...prev, phase: 'waitingForPdaInput' }));
+    }else if (conversationState.phase === 'waitingForPdaInput') {
+       const pda = command.trim();
+
+       const { message: joinOutput, subscriptionId } = await handleJoinChatServer(pda, onNewMessage);
+       subscriptionRef.current = subscriptionId;
+
+       // UI display
+       setHistory(prev => [
+         ...prev,
+         { id: uniqueId(), output: joinOutput },
+         { id: uniqueId(), output: 'Choose a nickname:' }
+       ]);
+
+       setConversationState(prev => ({ ...prev, phase: 'waitingForHandle', currentPDA: pda }));
+        return;
+     }
 
      if (result.joined && conversationState.currentPDA) {
          const { message: joinOutput, subscriptionId } = await handleJoinChatServer(conversationState.currentPDA, onNewMessage);
