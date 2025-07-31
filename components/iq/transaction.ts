@@ -133,10 +133,11 @@ export async function appTxSend(tx: Transaction, signAndSendTransaction: (tx: Tr
 
 export async function sendChat(pdaString: string, message: string, handle: string = 'default-handle') {
     try {
-      // Inscribe message to PDA as "group_chat" type (adapt from your codeIn comments; add params if needed for PDA targeting
-      await codeIn(message, "group_chat", handle);  // Assuming codeIn handles inscription to PDA
+      // Inscribe message to PDA and log resulting transaction ID
+      const txid = await codeIn(message, "group_chat", handle);
       console.log(`Message sent to PDA ${pdaString}: ${message}`);
-      return true;
+      console.log(`[sendChat] Transaction ID: ${txid}`);
+      return !!txid;
     } catch (error) {
       console.error('Failed to send chat:', error);
       return false;

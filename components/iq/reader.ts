@@ -110,31 +110,35 @@ export async function fetchLargeFileAndDoCache(txId: string): Promise<string> {
     }
     return data.result;
 }
-export async function getChatRecords(pdaString:string,sizeLimit:number, onMessage: (msg: string) => void){
-    const connection = new Connection(network, 'confirmed');
+export async function getChatRecords(pdaString: string, sizeLimit: number, onMessage: (msg: string) => void): Promise<void> {
+    const connection = new Connection(network, 'finalized');
 
     const chatPDA = new PublicKey(pdaString);
     try {
         const signatures = await connection.getSignaturesForAddress(chatPDA, {
-            limit: sizeLimit,
+            limit: sizeLimit ?? 100,
         });
 
-        if (signatures.length === 0) return [];
+        if (signatures.length === 0) {
+            console.log('[getChatRecords] No signatures found');
+            return;
+        }
         const reversedSignatures = signatures.reverse();
-
+        let fetchedCount = 0;
         for (const sig of reversedSignatures) {
             try {
                 const txDetails = await readChat(sig.signature);
                 if (txDetails) {
+                    fetchedCount++;
                     onMessage(txDetails);
                 }
             } catch (err) {
                 console.error(`Failed to read chat for ${sig.signature}:`, err);
             }
         }
+        console.log(`[getChatRecords] Fetched ${fetchedCount} historical messages for ${pdaString}`);
     } catch (error) {
         console.error('Failed to fetch chat records:', error);
-        return [];
     }
 
 }

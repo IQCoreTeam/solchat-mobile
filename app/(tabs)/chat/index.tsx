@@ -53,6 +53,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     console.log(`DEBUG: serverId : ${serverId}`)
     console.log(`DEBUG: pubkey : ${pubkey}`)
 
+    IQ.userInit();
     //const pubkeyFromSdk = await IQ.getMyPublicKey();
     //await IQ.userInit();
     //await IQ.codeIn("Hello World", "app-test", "example-handle");
