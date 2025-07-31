@@ -39,7 +39,8 @@ interface CommandResult {
   pda?: string;
   joined?: boolean;
   created?: boolean;
-  nickname?: string;   // ← new field
+  nickname?: string;
+  color?: string; // change server message color
 }
 
 // Simple test API call
@@ -185,7 +186,26 @@ const processCommand = async (
 
   if (cmd === '') return {};
   if (phase === 'inChat') {
-    if (cmd === 'exit') {
+    // handle slash commands
+    if (cmd.startsWith('/color ')) {
+      const colorArg = cmd.split(' ')[1];
+      let hex = '#1e90ff';
+      switch (colorArg) {
+        case 'blue':
+          hex = '#1e90ff';
+          break;
+        case 'red':
+          hex = '#ff4500';
+          break;
+        case 'green':
+          hex = '#32cd32';
+          break;
+        default:
+          return { output: 'Supported colors: blue, red, green' };
+      }
+      return { output: `Message color changed to ${colorArg}.`, color: hex };
+    }
+    if (cmd === 'exit' || cmd === '/leave') {
       return { output: 'Leaving chat...', clear: true };
     }
     const success = await IQ.sendChat(
@@ -217,7 +237,7 @@ const processCommand = async (
       if (!currentPDA) {
         return { output: 'Error: No PDA available for joining.' };
       }
-       return { output: 'Preparing to join...', joined: true };
+       return { output: '[*] Preparing to join...', joined: true };
     } else if (cmd === 'n' || cmd === 'no') {
       return { 
         output: [WELCOME_MESSAGE].join('\n')
@@ -228,7 +248,7 @@ const processCommand = async (
   } 
   if (phase === 'waitingForCreateResponse') {
     if (cmd === 'y' || cmd === 'yes') {
-      return { output: 'Preparing to create server...', created: true };  // Flag to trigger in component
+      return { output: '[*] Preparing to create server...', created: true };  // Flag to trigger in component
     } else if (cmd === 'n' || cmd === 'no') {
       return { output: WELCOME_MESSAGE };
     } else {
@@ -275,7 +295,8 @@ const processCommand = async (
 const CommandHistory: React.FC<{
   history: HistoryItem[];
   flatListRef: React.RefObject<FlatList<HistoryItem> | null>;
-}> = ({ history, flatListRef }) => {
+  messageColor: string;
+}> = ({ history, flatListRef, messageColor }) => {
   // Copy all history (inputs and outputs) to clipboard
   const handleCopyAll = () => {
     const text = history
@@ -288,7 +309,11 @@ const CommandHistory: React.FC<{
   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
     <View>
       {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}
-      {item.output && <AppText style={styles.outputText}>{item.output}</AppText>}
+      {item.output && (
+          <AppText style={item.output.startsWith('[Message]') ? [styles.messageText, {color: messageColor}] : styles.outputText}>
+            {item.output}
+          </AppText>
+        )}
     </View>
   );
 
@@ -352,6 +377,8 @@ export default function TabSettingsScreen() {
     setPubkey(publicKey?.toBase58() ?? null);
   },  [publicKey]);
 
+  const [messageColor, setMessageColor] = useState<string>('#1e90ff');
+
   const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'welcome', output: WELCOME_MESSAGE }
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
@@ -395,7 +422,11 @@ export default function TabSettingsScreen() {
         return;
       }
 
-      if (result.nickname) {
+      if (result.color) {
+         setMessageColor(result.color);
+       }
+
+       if (result.nickname) {
         // Remove loading entry and add nickname confirmation
         setHistory(prev => {
           const filtered = prev.filter(item => item.id !== 'loading');
@@ -517,7 +548,7 @@ export default function TabSettingsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <CommandHistory history={history} flatListRef={flatListRef} />
+        <CommandHistory history={history} flatListRef={flatListRef} messageColor={messageColor} />
         <CommandInput
           command={command}
           setCommand={setCommand}

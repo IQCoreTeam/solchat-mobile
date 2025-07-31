@@ -48,6 +48,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 2,
   },
+  messageText: {
+    color: '#1e90ff', // DodgerBlue for chat messages
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 16,
+    marginVertical: 2,
+  }
 });
 
 export default styles;
