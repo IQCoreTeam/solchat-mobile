@@ -3,6 +3,7 @@ import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
 
 import IQ from '@/components/iq';
+import {  encodeWithPassword,decodeWithPassword } from "hanlock";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
@@ -188,7 +189,8 @@ const processCommand = async (
   pubkey: string | null, 
   phase: string, 
   currentPDA?: string | null,
-  nickname?: string | null      // ← allow null/undefined
+  nickname?: string | null ,
+  messagePw?: string | null
 ): Promise<CommandResult> => {  
   
   const cmd = command.trim().toLowerCase();
@@ -214,14 +216,25 @@ const processCommand = async (
       }
       return { output: `Message color changed to ${colorArg}.`, color: hex };
     }
+   if(cmd.startsWith('/pw ')){
+       const pwArg = cmd.replace(/^\/pw\s+/, '').trim();
+       return { output: `Decode key Set to to ${pwArg}.`, password: pwArg };
+   }
+
     if (cmd === 'exit' || cmd === '/leave') {
       return { output: 'Leaving chat...', clear: true };
+
     }
-    const success = await IQ.sendChat(
-      currentPDA!,
-      command,
-      nickname ?? 'anonymous'
-    );
+
+    if (messagePw){
+        command = encodeWithPassword(command,messagePw);
+    }
+
+  const success = await IQ.sendChat(
+              currentPDA!,
+              command,
+              nickname ?? 'anonymous'
+         );
 
     if (success) {
       return { output: `[Sent] ${success}` };
@@ -393,12 +406,23 @@ export default function TabSettingsScreen() {
   },  [publicKey]);
 
   const [messageColor, setMessageColor] = useState<string>('#1e90ff');
+const [messagePw, setMessagePW] = useState<string>(null);
+const messagePwRef = useRef<string | null>(null);
 
+useEffect(() => {
+  messagePwRef.current = messagePw;
+}, [messagePw]);
   const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'welcome', output: WELCOME_MESSAGE }
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
 
   const onNewMessage = (msg: string) => {
+    if (messagePwRef.current && msg.includes(': ')) {
+         const [handle, encrypted] = msg.split(': ');
+         const decrypted = decodeWithPassword(encrypted, messagePwRef.current);
+         msg = `${handle}: ${decrypted}`;
+       }
+
     setHistory(prev => [
       ...prev,
       { id: uniqueId(), output: msg.startsWith('[') ? msg : `[Message] ${msg}` }
@@ -429,7 +453,9 @@ export default function TabSettingsScreen() {
                                           pubkey, 
                                           conversationState.phase,
                                           conversationState.currentPDA,
-                                          conversationState.nickname);      
+                                          conversationState.nickname,
+                                          messagePw
+                                          );
       if (result.clear) {
         // Unsubscribe from any active chat log listener
         if (subscriptionRef.current !== null) {
@@ -448,6 +474,7 @@ export default function TabSettingsScreen() {
         }, 100);
         setMessageColor('#1e90ff');
         setCommand('');
+        setMessagePW(null)
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
         return;
       }
@@ -455,6 +482,9 @@ export default function TabSettingsScreen() {
       if (result.color) {
          setMessageColor(result.color);
        }
+      if(result.password){
+          setMessagePW(result.password);
+      }
 
        if (result.nickname) {
         // Remove loading entry and add nickname confirmation
