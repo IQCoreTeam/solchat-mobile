@@ -8,14 +8,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View ,Text} from 'react-native';
 import styles from './styles';
 import {solChat} from "@/assets/ascii"
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
-const WELCOME_MESSAGE = solChat+`\nWelcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
-
+const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
+const WELCOME_MENU = `[1] Create/Search room   [2] Enter room`;
+const SELECT_MESSAGE=`\nType your selection:`
 const pdaCheck = async (PDA: string) => {
   try {
     const PDAPubkey = new PublicKey(PDA);
@@ -33,9 +34,11 @@ interface HistoryItem {
   id: string;
   input?: string;
   output?: string;
+  type?:string;
 }
 
 interface CommandResult {
+    type?:string;
   output?: string;
   clear?: boolean;
   pda?: string;
@@ -66,14 +69,14 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
 
     // working mainnet PDA - just enter 'test' when prompted for serverId
     //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
-    
+
     console.log(`DEBUG: fetching ${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
     const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
     console.log(`DEBUG: response body : ${response.body}`)
     console.log(`DEBUG: response status : ${response.status}`)
-    
+
     console.log(`DEBUG: response : ${response}`)
     if (!response.ok) {
       if (response.status === 500) {
@@ -81,7 +84,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log(`DEBUG: data : ${data}`)
     if (data && data.PDA) {
@@ -93,7 +96,7 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
         return { message: `Located server at PDA\n${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
       }
       else {
-        console.log(`PDA not found. Prompting user to create a new server`);  
+        console.log(`PDA not found. Prompting user to create a new server`);
         return { message: 'PDA not found. Would you like to create a new server? [y/n]'};
       }
     } else {
@@ -187,14 +190,14 @@ const uniqueId = () => `${Date.now()}-${Math.random().toString(36).substr(2,5)}`
 
 // Command processing logic
 const processCommand = async (
-  command: string, 
-  pubkey: string | null, 
-  phase: string, 
+  command: string,
+  pubkey: string | null,
+  phase: string,
   currentPDA?: string | null,
   nickname?: string | null ,
   messagePw?: string | null
-): Promise<CommandResult> => {  
-  
+): Promise<CommandResult> => {
+
   const cmd = command.trim().toLowerCase();
 
   if (cmd === '') return {};
@@ -254,7 +257,7 @@ const processCommand = async (
     return { output: `${actionOutput.message}\nType your selection:` };
   }
   return { output: actionOutput.message, pda: actionOutput.pda };
-} 
+}
 
   if (phase === 'waitingForJoinResponse') {
     if (cmd === 'y' || cmd === 'yes') {
@@ -263,18 +266,18 @@ const processCommand = async (
       }
        return { output: '[*] Preparing to join...', joined: true };
     } else if (cmd === 'n' || cmd === 'no') {
-      return { 
-        output: [WELCOME_MESSAGE].join('\n')
+      return {
+       output: [WELCOME_MESSAGE].join('\n'),type:'welcome', clear: true
       };
     } else {
       return { output: 'Please enter y or n:' };
     }
-  } 
+  }
   if (phase === 'waitingForCreateResponse') {
     if (cmd === 'y' || cmd === 'yes') {
       return { output: '[*] Preparing to create server...', created: true };  // Flag to trigger in component
     } else if (cmd === 'n' || cmd === 'no') {
-      return { output: WELCOME_MESSAGE };
+      return {  output: WELCOME_MESSAGE,type:'welcome', clear: true };
     } else {
       return { output: 'Please enter y or n:' };
     }
@@ -301,7 +304,7 @@ const processCommand = async (
         ].join('\n'),
       };
     case '1':
-      return { output: 'Enter Server ID:' };  
+      return { output: 'Enter Server ID:' };
 
     case '2':
       return { output: 'Enter PDA:' };
@@ -330,22 +333,50 @@ const CommandHistory: React.FC<{
     Clipboard.setString(text);
   };
 
-  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
-    <View>
-      {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}
-      {item.output && (
-          <AppText style={
-              item.output.startsWith('[Message]')
-                ? [styles.messageText, { color: messageColor }]
-                : item.output.startsWith('[Server]')
-                ? styles.prompt // use same green as prompts
-                : styles.outputText
-            }>
+   const renderHistoryItem = ({ item }: { item: HistoryItem }) => {
+      //  ascii render
+     if (item.type === 'ascii') {
+         return (
+          <Text key={item.id} style={styles.asciiArt}>
             {item.output}
-          </AppText>
-        )}
-    </View>
-  );
+          </Text>
+        );
+      }
+    else if (item.type === 'welcome') {
+        return (
+            <Text key={item.id} style={styles.welcome}>
+                {item.output}
+            </Text>
+        );
+       }
+    else if (item.type === 'welcome_menu') {
+       return (
+             <Text key={item.id} style={styles.welcomeMenu}>
+                  {item.output}
+             </Text>
+            );
+       }
+
+      // default
+      return (
+        <View>
+          {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}
+          {item.output && (
+            <AppText
+              style={
+                item.output.startsWith('[Message]')
+                  ? [styles.messageText, { color: messageColor }]
+                  : item.output.startsWith('[Server]')
+                  ? styles.prompt
+                  : styles.outputText
+              }
+            >
+              {item.output}
+            </AppText>
+          )}
+        </View>
+      );
+    };
 
   return (
     <>
@@ -415,7 +446,10 @@ useEffect(() => {
   messagePwRef.current = messagePw;
 }, [messagePw]);
   const [history, setHistory] = useState<HistoryItem[]>([
-    { id: 'welcome', output: WELCOME_MESSAGE }
+      { id: 'solchat', output: solChat, type: 'ascii' },
+      { id: 'welcome', output: WELCOME_MESSAGE ,type:'welcome'},
+      { id: 'welcome_menu', output: WELCOME_MENU ,type:'welcome_menu'},
+      { id: 'select_message', output: SELECT_MESSAGE ,type:'select_message'}
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
 
   const onNewMessage = (msg: string) => {
@@ -448,11 +482,11 @@ useEffect(() => {
 
     const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
     // Add the command to history immediately
-    setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);
-    
+    setHistory(prevHistory => [...prevHistory, newEntry, { id: uniqueId(), output: 'Loading...' }]);
+
     try {
-      const result = await processCommand(command, 
-                                          pubkey, 
+      const result = await processCommand(command,
+                                          pubkey,
                                           conversationState.phase,
                                           conversationState.currentPDA,
                                           conversationState.nickname,
@@ -469,7 +503,10 @@ useEffect(() => {
           ...prev,
           { id: uniqueId(), output: '[Server] Disconnecting...' },
           { id: uniqueId(), output: '-------------------------------------' },
-          { id: uniqueId(), output: WELCOME_MESSAGE }
+          { id: uniqueId(), output: solChat, type: 'ascii' },
+          { id: uniqueId(), output: WELCOME_MESSAGE ,type:'welcome'},
+          { id: uniqueId(), output: WELCOME_MENU ,type:'welcome_menu'},
+          { id: uniqueId(), output: SELECT_MESSAGE ,type:'select_message'}
         ]);
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -527,18 +564,18 @@ useEffect(() => {
       } else if (conversationState.phase === 'waitingForServerId') {
         // Check if the output contains the join prompt
         if (result.output && result.output.includes('Join server? [y/n]')) {
-          setConversationState(prev => ({ 
-                       ...prev, 
-                     phase: 'waitingForJoinResponse', 
+          setConversationState(prev => ({
+                       ...prev,
+                     phase: 'waitingForJoinResponse',
                      pendingPubkey: pubkey,
                      currentPDA: result.pda || prev.currentPDA  // Use result.pda if available
-          }));        
+          }));
         } else if (result.output && result.output.includes('create a new server? [y/n]')) {
-          setConversationState(prev => ({ 
-            ...prev, 
-            phase: 'waitingForCreateResponse', 
+          setConversationState(prev => ({
+            ...prev,
+            phase: 'waitingForCreateResponse',
             currentServerId: command.trim(),
-          }));        
+          }));
         } else {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
@@ -546,7 +583,7 @@ useEffect(() => {
         if (!result.joined) {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
-      }  
+      }
     if (cmd === '2' && conversationState.phase === 'idle') {
       // Enter chat room
       setConversationState(prev => ({ ...prev, phase: 'waitingForPdaInput' }));
@@ -583,7 +620,7 @@ useEffect(() => {
           { id: uniqueId(), output: 'Choose a nickname:' },
         ]);
         setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));
-        return; 
+        return;
          //setConversationState(prev => ({ ...prev, phase: 'inChat' }));
        }
 
@@ -615,9 +652,9 @@ useEffect(() => {
         const filtered = prevHistory.filter(item => item.id !== 'loading');
         return [
           ...filtered,
-          { 
-            id: uniqueId(), 
-            output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` 
+          {
+            id: uniqueId(),
+            output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}`
           }
         ];
       });

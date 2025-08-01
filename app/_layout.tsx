@@ -21,6 +21,7 @@ export default function RootLayout() {
     console.log(`Track ${pathname}`, { params })
   })
   const [loaded] = useFonts({
+      IBMPlexMono: require('../assets/fonts/IBMPlexMono-Medium.ttf'),
      MinecraftStandard: require('../assets/fonts/MinecraftStandard.otf'),
      MinecraftStandardBold: require('../assets/fonts/MinecraftStandardBold.otf'),
     MinecraftStandardBoldOblique: require('../assets/fonts/MinecraftStandardBoldOblique.otf'),

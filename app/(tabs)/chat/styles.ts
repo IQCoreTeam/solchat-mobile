@@ -5,6 +5,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
+   asciiArt: {
+        fontFamily:'monospace',
+        textAlign: 'left',
+        fontSize: 12,
+        color: '#00ff00'
+      },
+   welcome: {
+         fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+          textAlign: 'center',
+          color: '#FFFF00',
+          padding:2,
+
+   },
+   welcomeMenu:{
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+        textAlign: 'center',
+        color: '#fff',
+        borderColor: '#fff',
+        borderWidth: 1,
+
+   },
+
   title: {
     fontSize: 24,
     textAlign: 'center',
