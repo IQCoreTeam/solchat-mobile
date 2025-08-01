@@ -5,13 +5,13 @@ import { AppView } from '@/components/app-view'
 import { AppPage } from '@/components/app-page'
 import { AccountUiButtons } from './account-ui-buttons'
 import { AccountUiBalance } from '@/components/account/account-ui-balance'
-import { RefreshControl, ScrollView,View } from 'react-native'
+import { RefreshControl, ScrollView,View ,Text} from 'react-native'
 import { useCallback, useState } from 'react'
 import { useGetBalanceInvalidate } from '@/components/account/use-get-balance'
 import { PublicKey } from '@solana/web3.js'
 import { useGetTokenAccountsInvalidate } from '@/components/account/use-get-token-accounts'
 import { WalletUiButtonConnect } from '@/components/solana/wallet-ui-button-connect'
-
+import {walletFire} from "@/assets/ascii"
 
 export function AccountFeature() {
   const { account } = useWalletUi()
@@ -28,11 +28,12 @@ export function AccountFeature() {
     <AppPage>
       {account ? (
         <ScrollView
-          contentContainerStyle={{flexGrow: 1,justifyContent: 'center',alignItems: 'center' , paddingBottom: '10%', }}
+          contentContainerStyle={{flexGrow: 1,justifyContent: 'center',alignItems: 'center' , paddingBottom: '30%', }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => onRefresh()} />}
-         style={{borderColor:"#15f016", borderTopWidth: 2,  borderBottomWidth: 2,borderStyle: 'dashed',}}
         >
-
+       <Text style={{fontFamily:'monospace',textAlign: 'left',fontSize: 16,color: '#00ff00',marginBottom:15}}>
+                  {walletFire}
+                </Text>
           <AppView style={{ alignItems: 'center', justifyContent:'center', gap: 4,}}>
             <AccountUiBalance address={account.publicKey} />
             <AppText style={{ opacity: 0.7,}}>{ellipsify(account.publicKey.toString(), 8)}</AppText>

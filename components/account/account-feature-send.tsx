@@ -1,11 +1,11 @@
 import { AppView } from '@/components/app-view'
 import { AppText } from '@/components/app-text'
 import { PublicKey } from '@solana/web3.js'
-import { ActivityIndicator, TextInput, View, TouchableOpacity } from 'react-native'
+import { ActivityIndicator, TextInput, View, TouchableOpacity,Text } from 'react-native'
 import React, { useState } from 'react'
 import { useTransferSol } from '@/components/account/use-transfer-sol'
 import { useThemeColor } from '@/hooks/use-theme-color'
-
+import {bow} from "@/assets/ascii"
 export function AccountFeatureSend({ address }: { address: PublicKey }) {
   const transferSol = useTransferSol({ address })
   const [destinationAddress, setDestinationAddress] = useState('')
@@ -28,22 +28,23 @@ export function AccountFeatureSend({ address }: { address: PublicKey }) {
 
   return (
     <AppView>
-      <AppText type="subtitle">Send SOL from the connected wallet.</AppText>
+      <Text  style={{backgroundColor: '#0000FF',fontSize:15, color: '#ffffff',fontFamily: 'monospace',textAlign: 'center'}}>Send SOL from the connected wallet.</Text>
+    <Text style={{ fontSize:14, color: '#ffffff',fontFamily: 'monospace',textAlign: 'left'}}>{bow}</Text>
 
       {transferSol.isPending ? (
         <ActivityIndicator />
       ) : (
         <View style={{ gap: 16,}}>
-          <AppText>Amount (SOL)</AppText>
+         <Text style={{ color: '#15f016',fontFamily: 'monospace',textAlign: 'center'}}>Amount (SOL)</Text>
           <TextInput
             style={{
               backgroundColor,
-              color: textColor,
+              color:  '#15f016',
               borderColor:"#15f016",
               borderTopWidth: 1,
               borderBottomWidth: 1,
                borderStyle: 'dashed',
-                fontFamily: 'MinecraftStandard',
+                fontFamily: 'monospace',
               paddingHorizontal: 16,
             }}
             value={amount}
@@ -51,16 +52,16 @@ export function AccountFeatureSend({ address }: { address: PublicKey }) {
             keyboardType="numeric"
           />
 
-          <AppText>Destination Address</AppText>
+           <Text style={{ color: '#15f016',fontFamily: 'monospace',textAlign: 'center'}}>Destination Address</Text>
           <TextInput
             style={{
               backgroundColor,
-              color: textColor,
+               color:  '#15f016',
                borderColor:"#15f016",
                borderTopWidth: 1,
                borderBottomWidth: 1,
               borderStyle: 'dashed',
-               fontFamily: 'MinecraftStandard',
+               fontFamily: 'monospace',
               paddingHorizontal: 16,
             }}
             value={destinationAddress}
@@ -72,7 +73,7 @@ export function AccountFeatureSend({ address }: { address: PublicKey }) {
             onPress={handleSend}
             style={{
               borderRadius: 2,
-              backgroundColor: '#15f016',
+              backgroundColor: '#ffffff',
               paddingVertical: 8,
               paddingHorizontal: 16,
               alignItems: 'center',
@@ -82,9 +83,9 @@ export function AccountFeatureSend({ address }: { address: PublicKey }) {
             {transferSol.isPending ? (
               <ActivityIndicator color="#000" />
             ) : (
-              <AppText type="defaultSemiBold" style={{ color: '#000000', }}>
+               <Text style={{ color: '#000000',fontFamily: 'monospace'}}>
                 Send SOL
-              </AppText>
+              </Text>
             )}
           </TouchableOpacity>
         </View>

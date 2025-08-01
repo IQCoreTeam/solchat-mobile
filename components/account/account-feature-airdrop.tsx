@@ -3,11 +3,13 @@ import { AppText } from '@/components/app-text'
 import { PublicKey } from '@solana/web3.js'
 import { useWalletUi } from '@/components/solana/use-wallet-ui'
 import React from 'react'
-import { TouchableOpacity, ActivityIndicator } from 'react-native'
+import { TouchableOpacity, ActivityIndicator ,Text,View} from 'react-native'
 import { useRequestAirdrop } from '@/components/account/use-request-airdrop'
+import {computer} from "@/assets/ascii"
 
 export function AccountFeatureAirdrop({ back }: { back: () => void }) {
-  const { account } = useWalletUi()
+  const { account ,publicKey} = useWalletUi()
+  const address = publicKey?.toString()
   const amount = 1
   const requestAirdrop = useRequestAirdrop({ address: account?.publicKey as PublicKey })
 
@@ -23,7 +25,12 @@ export function AccountFeatureAirdrop({ back }: { back: () => void }) {
 
   return (
     <AppView>
-      <AppText type="subtitle">Request a 1 SOL airdrop to the connected wallet.</AppText>
+    <View style={{ backgroundColor: '#0000FF',padding:10}}>
+      <Text style={{ color: '#ffffff',fontFamily: 'monospace',textAlign: 'center'}}>Request a 1 SOL to the connected wallet.</Text>
+    <Text style={{color: '#0000FF',backgroundColor: '#ffffff',fontFamily: 'monospace',textAlign: 'center',marginTop:10,marginBottom:10}}>{address}</Text>
+    </View>
+
+    <Text style={{ fontSize:14, color: '#ffffff',fontFamily: 'monospace',textAlign: 'left'}}>{computer}</Text>
 
       <TouchableOpacity
         disabled={requestAirdrop.isPending}
@@ -31,7 +38,7 @@ export function AccountFeatureAirdrop({ back }: { back: () => void }) {
         style={{
           marginTop: 16,
           borderRadius: 2,
-          backgroundColor: '#15f016',
+          backgroundColor: '#ffffff',
           paddingVertical: 8,
           paddingHorizontal: 16,
           alignItems: 'center',
@@ -41,9 +48,9 @@ export function AccountFeatureAirdrop({ back }: { back: () => void }) {
         {requestAirdrop.isPending ? (
           <ActivityIndicator color="#000" />
         ) : (
-          <AppText type="defaultSemiBold" style={{ color: '#000000' ,}}>
+          <Text style={{ color: '#000000',fontFamily: 'monospace'}}>
             Request Airdrop
-          </AppText>
+          </Text>
         )}
       </TouchableOpacity>
 

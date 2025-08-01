@@ -14,7 +14,7 @@ export default function Layout() {
       <Stack.Screen name="index" />
 
       <Stack.Screen name="airdrop" options={{ headerTitle: 'Airdrop', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
-      <Stack.Screen name="s3end" options={{ headerTitle: 'Send', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
+      <Stack.Screen name="send" options={{ headerTitle: 'Send', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
       <Stack.Screen name="receive" options={{ headerTitle: 'Receive', headerTintColor: '#15f016',  headerTitleStyle: { fontFamily: 'MinecraftStandardBold' ,color: "#15f016"}, headerRight: () => null }} />
     </Stack>
   )
