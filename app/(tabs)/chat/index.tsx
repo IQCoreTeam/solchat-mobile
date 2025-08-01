@@ -10,10 +10,11 @@ import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
+import {solChat} from "@/assets/ascii"
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
-const WELCOME_MESSAGE = `Welcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
+const WELCOME_MESSAGE = solChat+`\nWelcome to Solchat!\n[1] Create or search chat server\n[2] Enter chat room\nType your selection:`;
 
 const pdaCheck = async (PDA: string) => {
   try {
@@ -42,6 +43,7 @@ interface CommandResult {
   created?: boolean;
   nickname?: string;
   color?: string; // change server message color
+  password?:string;
 }
 
 // Simple test API call
@@ -406,7 +408,7 @@ export default function TabSettingsScreen() {
   },  [publicKey]);
 
   const [messageColor, setMessageColor] = useState<string>('#1e90ff');
-const [messagePw, setMessagePW] = useState<string>(null);
+const [messagePw, setMessagePW] = useState<string>('');
 const messagePwRef = useRef<string | null>(null);
 
 useEffect(() => {
@@ -474,7 +476,7 @@ useEffect(() => {
         }, 100);
         setMessageColor('#1e90ff');
         setCommand('');
-        setMessagePW(null)
+        setMessagePW('')
         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
         return;
       }
