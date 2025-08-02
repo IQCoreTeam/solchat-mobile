@@ -8,6 +8,8 @@ import { ActivityIndicator, View, Alert } from 'react-native'
 import { Image } from 'expo-image'
 import { Button } from '@react-navigation/elements'
 import { getAppKeypair } from '@/components/account/app-keypair-manager'
+import { transact, Web3MobileWallet } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js'
+
 
 export default function SignIn() {
   const { signIn, isLoading } = useAuth()
@@ -15,27 +17,36 @@ export default function SignIn() {
   const handleSignIn = async () => {
     const existingKeypair = await getAppKeypair()
 
-    if (!existingKeypair) {
-        //after we can be able to use sdk, we need to put iq init function in some where,
-        //since this just make a wallet and not fill the gas, we could display the error when user try to send the data without money
-      Alert.alert(
-        'Create Wallet',
-        'No wallet found. Would you like to create a new wallet?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Yes',
-            onPress: async () => {
-              await signIn()
-              router.replace('/')
-            },
-          },
-        ],
-        { cancelable: true }
-      )
-    } else {
+    // If a local keypair already exists, proceed as before
+    if (existingKeypair) {
       await signIn()
       router.replace('/')
+      return
+    }
+
+    // Otherwise prompt user to pick a wallet provider via Mobile Wallet Adapter
+    try {
+      await transact(async (wallet: Web3MobileWallet) => {
+        await wallet.authorize({
+          chain: 'solana:devnet', // change to 'mainnet-beta' in production
+          identity: {
+            name: AppConfig.name,
+            uri: 'https://solchat.app',
+            icon: 'favicon.ico',
+          },
+        })
+      })
+
+      // After successful authorization, continue with current signIn flow (creates local wallet for now)
+      await signIn()
+      router.replace('/')
+    } catch (e: any) {
+      // User cancelled or no wallet available
+      Alert.alert(
+        'Wallet Connection',
+        'Unable to connect to a wallet provider. Please ensure a compatible wallet (e.g., Phantom) is installed.',
+        [{ text: 'OK', style: 'default' }]
+      )
     }
   }
 
