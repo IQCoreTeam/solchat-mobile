@@ -201,6 +201,19 @@ const processCommand = async (
 
   const cmd = command.trim().toLowerCase();
 
+  // Always allow /help command
+  if (cmd === '/help') {
+    const helpText = [
+      'Available commands:',
+      '/color [blue|red|green] - Change message color',
+      '/pw [key] - Set decryption key for messages',
+      '/sendbonk [address] [amount] - Send BONK to another user',
+      '/leave - Exit the current chat room',
+      '/help - Show this help message'
+    ];
+    return { output: helpText.join('\n') };
+  }
+
   if (cmd === '') return {};
   if (phase === 'inChat') {
     // handle slash commands
@@ -320,7 +333,7 @@ const processCommand = async (
       if (cmd.startsWith('echo ')) {
         return { output: cmd.slice(5) };
       }
-      return { output: `Command not found: ${command}` };
+      return { output: `Command not recognized. Type /help to see available commands.` };
   }
 };
 
@@ -448,7 +461,7 @@ export default function TabSettingsScreen() {
   });
   const subscriptionRef = useRef<number | null>(null);
   const [command, setCommand] = useState<string>('');
-  const { publicKey, signAndSendTransaction } = useWalletUi();
+  const { publicKey, signAndSendTransaction, isUserInitialized } = useWalletUi();
   const [pubkey, setPubkey] = useState<string | null>(null);
   useEffect(() => {
     setPubkey(publicKey?.toBase58() ?? null);
@@ -494,6 +507,17 @@ useEffect(() => {
   }, []);
 
   const handleCommandSubmit = async () => {
+    const lowerCmd = command.trim().toLowerCase();
+    // Block restricted actions if user not initialized
+    if (isUserInitialized === false) {
+      const restrictedPhases = ['idle', 'waitingForServerId', 'waitingForJoinResponse', 'waitingForCreateResponse', 'waitingForPdaInput'];
+      const wantsRestricted = (conversationState.phase === 'idle' && (lowerCmd === '1' || lowerCmd === '2')) || restrictedPhases.includes(conversationState.phase as string);
+      if (wantsRestricted) {
+        setHistory(prev => [...prev, { id: uniqueId(), output: '[Server] Wallet not initialized. Please airdrop SOL to your wallet and reconnect before creating or joining a chatroom.' }]);
+        setCommand('');
+        return;
+      }
+    }
     if (command.trim() === '') return;
 
     const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
