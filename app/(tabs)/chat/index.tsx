@@ -10,7 +10,7 @@ import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View ,Text} from 'react-native';
 import styles from './styles';
-import {solChat} from "@/assets/ascii"
+import {solChat,bonkAscii} from "@/assets/ascii"
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
@@ -47,6 +47,7 @@ interface CommandResult {
   nickname?: string;
   color?: string; // change server message color
   password?:string;
+    amount?:string;
 }
 
 // Simple test API call
@@ -225,6 +226,12 @@ const processCommand = async (
        const pwArg = cmd.replace(/^\/pw\s+/, '').trim();
        return { output: `Decode key Set to to ${pwArg}.`, password: pwArg };
    }
+   if(cmd.startsWith('/sendbonk ')){
+        const address = cmd.split(' ')[1];
+       const amount = cmd.split(' ')[2];
+
+       return{output:`Sent ${amount} Bonk to user ${address}`, amount: amount }
+       }
 
     if (cmd === 'exit' || cmd === '/leave') {
       return { output: 'Leaving chat...', clear: true };
@@ -356,7 +363,16 @@ const CommandHistory: React.FC<{
              </Text>
             );
        }
-
+     else if (item.type === 'bonk') {
+           return (
+               <View>
+               <Text style={styles.bonkAscii}> {bonkAscii}</Text>
+                 <Text key={item.id} style={styles.sendBonkTxt}>
+                      {item.output}
+                 </Text>
+                 </View>
+                );
+           }
       // default
       return (
         <View>
@@ -524,6 +540,18 @@ useEffect(() => {
       if(result.password){
           setMessagePW(result.password);
       }
+      if(result.amount){
+
+            setHistory(prev => [
+                    ...prev,
+                    { id: uniqueId(), output: result.output ,type:'bonk'}
+                  ]);
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+              setCommand('');
+               return;
+          }
 
        if (result.nickname) {
         // Remove loading entry and add nickname confirmation

@@ -11,6 +11,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#00ff00'
       },
+    bonkAscii: {
+          fontFamily:'monospace',
+          textAlign: 'left',
+          fontSize: 8,
+          color: '#FFFF00'
+        },
+        sendBonkTxt: {
+              fontFamily:'monospace',
+              fontSize: 15,
+              color: '#FFFF00'
+            },
    welcome: {
          fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
           textAlign: 'center',
