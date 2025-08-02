@@ -86,6 +86,21 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontSize: 16,
     marginVertical: 2,
+  },
+  selectedText: {
+    backgroundColor: 'rgba(30, 144, 255, 0.2)',
+    borderRadius: 4,
+    padding: 2,
+  },
+  copyFeedback: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 5,
+    borderRadius: 4,
+    color: '#fff',
+    fontSize: 12,
   }
 });
 

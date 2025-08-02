@@ -164,19 +164,18 @@ const handleCreateChatServer = async (serverId: string, pubkey: string | null, s
 
 const appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => Promise<Transaction>): Promise<string> => {
   try {
-    const connection = new Connection(NETWORK, 'confirmed');  // Use your app's NETWORK (devnet)
+    const connection = new Connection(NETWORK, 'confirmed'); 
     let blockHash = await connection.getLatestBlockhash();
-    while (!blockHash) {  // Retry if undefined
+    while (!blockHash) { 
       blockHash = await connection.getLatestBlockhash();
     }
     tx.recentBlockhash = blockHash.blockhash;
     tx.lastValidBlockHeight = blockHash.lastValidBlockHeight;
-    // feePayer should be set in the tx from backend (user's pubkey)
     const signedTx = await signTransaction(tx);  // Wallet signs
-    const txid = await connection.sendTransaction(signedTx, [], { skipPreflight: true });  // Empty signers array, options third
+    const txid = await connection.sendTransaction(signedTx, [], { skipPreflight: true });
     await connection.confirmTransaction({
       signature: txid,
-      blockhash: blockHash.blockhash,  // Add this
+      blockhash: blockHash.blockhash, 
       lastValidBlockHeight: blockHash.lastValidBlockHeight,
     });
     return txid;
@@ -338,13 +337,24 @@ const processCommand = async (
 };
 
 
-// Component to render command history
+// Component to render command history with tap-to-copy
 const CommandHistory: React.FC<{
   history: HistoryItem[];
   flatListRef: React.RefObject<FlatList<HistoryItem> | null>;
   messageColor: string;
 }> = ({ history, flatListRef, messageColor }) => {
   // Copy all history (inputs and outputs) to clipboard
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  // Handle tap on text
+  const handleTextPress = (text: string) => {
+    setSelectedItem(text);
+    Clipboard.setString(text);
+    setCopyFeedback('Copied!');
+    setTimeout(() => setCopyFeedback(null), 2000);
+  };
+
   const handleCopyAll = () => {
     const text = history
       .map(item => [item.input, item.output].filter(Boolean).join('\n'))
@@ -353,62 +363,86 @@ const CommandHistory: React.FC<{
     Clipboard.setString(text);
   };
 
-   const renderHistoryItem = ({ item }: { item: HistoryItem }) => {
-      //  ascii render
-     if (item.type === 'ascii') {
-         return (
-          <Text key={item.id} style={styles.asciiArt}>
+  const renderHistoryItem = ({ item }: { item: HistoryItem }) => {
+    // ascii render
+    if (item.type === 'ascii') {
+      return (
+        <Text key={item.id} style={styles.asciiArt}>
+          {item.output}
+        </Text>
+      );
+    }
+    else if (item.type === 'welcome') {
+      return (
+        <Text key={item.id} style={styles.welcome}>
+          {item.output}
+        </Text>
+      );
+    }
+    else if (item.type === 'welcome_menu') {
+      return (
+        <Text key={item.id} style={styles.welcomeMenu}>
+          {item.output}
+        </Text>
+      );
+    }
+    else if (item.type === 'bonk') {
+      return (
+        <View key={item.id}>
+          <Text style={styles.bonkAscii}>{bonkAscii}</Text>
+          <Text style={styles.sendBonkTxt}>
             {item.output}
           </Text>
-        );
-      }
-    else if (item.type === 'welcome') {
-        return (
-            <Text key={item.id} style={styles.welcome}>
-                {item.output}
-            </Text>
-        );
-       }
-    else if (item.type === 'welcome_menu') {
-       return (
-             <Text key={item.id} style={styles.welcomeMenu}>
-                  {item.output}
-             </Text>
-            );
-       }
-     else if (item.type === 'bonk') {
-           return (
-               <View>
-               <Text style={styles.bonkAscii}> {bonkAscii}</Text>
-                 <Text key={item.id} style={styles.sendBonkTxt}>
-                      {item.output}
-                 </Text>
-                 </View>
-                );
-           }
-      // default
-      return (
-        <View>
-          {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}
-          {item.output && (
+        </View>
+      );
+    }
+    
+    // default render for command input/output
+    return (
+      <View key={item.id}>
+        {item.input && (
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => handleTextPress(item.input!)}
+          >
+            <AppText 
+              style={[
+                styles.inputText,
+                selectedItem === item.input && styles.selectedText
+              ]}
+            >
+              {item.input}
+            </AppText>
+          </TouchableOpacity>
+        )}
+        {item.output && (
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => handleTextPress(item.output!)}
+          >
             <AppText
-              style={
+              style={[
                 item.output.startsWith('[Message]')
                   ? [styles.messageText, { color: messageColor }]
                   : item.output.startsWith('[Server]')
                   ? styles.prompt
-                  : styles.outputText
-              }
+                  : styles.outputText,
+                selectedItem === item.output && styles.selectedText
+              ]}
             >
               {item.output}
             </AppText>
-          )}
-        </View>
-      );
-    };
+          </TouchableOpacity>
+        )}
+        {copyFeedback && selectedItem && (item.input === selectedItem || item.output === selectedItem) && (
+          <Text style={styles.copyFeedback}>{copyFeedback}</Text>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <>
+    <View style={styles.container}>
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
         <TouchableOpacity onPress={handleCopyAll}>
           <MaterialCommunityIcons name="content-copy" size={22} color="#888" />
@@ -422,7 +456,7 @@ const CommandHistory: React.FC<{
         style={styles.history}
         contentContainerStyle={styles.historyContent}
       />
-    </>
+    </View>
   );
 };
 
