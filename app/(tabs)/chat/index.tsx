@@ -119,14 +119,18 @@ const handleJoinChatServer = async (
   try {
     // Determine how many historical messages are available
     const sigs = await IQ.fetchDataSignatures(pda, 100);
-    const count = sigs.length;
-    const loadingBanner = `[Server] Loading ${count} messages ...`;
+    const totalMessages = sigs.length;
+    
+    // Only load the last 5 messages
+    const messagesToLoad = 5;
+    const startIdx = Math.max(0, totalMessages - messagesToLoad);
+    const loadingBanner = `[Server] Loading ${startIdx + 1}-${totalMessages} of ${totalMessages} messages...`;
 
     // Show loading banner first
     onNewMessage(loadingBanner);
 
-    // Fetch historical messages
-    await IQ.getChatRecords(pda, 50, onNewMessage);
+    // Fetch only the last 5 messages
+    await IQ.getChatRecords(pda, messagesToLoad, onNewMessage);
 
     const subscriptionId = await IQ.joinChat(pda, onNewMessage);
     return { message: 'Joined server successfully. Listening for messages...', subscriptionId };
