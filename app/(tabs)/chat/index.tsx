@@ -36,7 +36,9 @@ interface HistoryItem {
   id: string;
   input?: string;
   output?: string;
-  type?:string;
+  type?: string;
+  pda?: string;
+  joinPrompt?: string;
 }
 
 interface CommandResult {
@@ -54,7 +56,12 @@ interface CommandResult {
 }
 
 // Simple test API call
-const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<{ message: string, pda?: string }> => {
+const handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<{ 
+  message: string, 
+  pda?: string, 
+  type?: string,
+  joinPrompt?: string 
+}> => {
   try {
     // valid wallet
     // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
@@ -83,7 +90,11 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
       console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
       if (pdaCheckResult) {
         console.log(`PDA found: ${pdaCheckResult}`);
-        return { message: `Located server at PDA\n${data.PDA}\n\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\nPDA: ${data.PDA}\n\nJoin server? [y/n]`;
+        // Return the server found message with PDA
+        return { 
+          message: `Server found!\n\nPDA:\n${data.PDA}\n\nJoin server? [y/n]`,
+          pda: data.PDA
+        };
       }
       else {
         console.log(`PDA not found. Prompting user to create a new server`);
@@ -112,7 +123,11 @@ const handleJoinChatServer = async (
     // Only load the last 5 messages
     const messagesToLoad = 5;
     const startIdx = Math.max(0, totalMessages - messagesToLoad);
-    const loadingBanner = `[Server] Loading ${startIdx + 1}-${totalMessages} of ${totalMessages} messages...`;
+    
+    // Only show loading banner if there are messages to load
+    const loadingBanner = totalMessages > 1 
+      ? `[Server] Loading ${startIdx + 1}-${totalMessages} of ${totalMessages} messages...`
+      : `[Server] No messages in this server yet.`;
 
     // Show loading banner first
     onNewMessage(loadingBanner);
@@ -341,7 +356,7 @@ const processCommand = async (
       return { output: 'Encryption key cannot be empty. Please enter a key:' };
     }
     return {
-      output: `Encryption enabled with key. Starting chat...\nType /pw <key> to change encryption key.`,
+      output: `Encryption enabled with key. Type /pw <key> to change encryption key\nType /leave to disconnect\nHappy Chatting!\n`,
       password: cmd
     };
   }
@@ -927,10 +942,10 @@ export default function TabSettingsScreen() {
         // check if output contains the join prompt
         if (result.output && result.output.includes('Join server? [y/n]')) {
           setConversationState(prev => ({
-                       ...prev,
-                     phase: 'waitingForJoinResponse',
-                     pendingPubkey: pubkey,
-                     currentPDA: result.pda || prev.currentPDA  // Use result.pda if available
+            ...prev,
+            phase: 'waitingForJoinResponse',
+            pendingPubkey: pubkey,
+            currentPDA: result.pda || prev.currentPDA  // Use result.pda if available
           }));
         } else if (result.output && result.output.includes('create a new server? [y/n]')) {
           setConversationState(prev => ({
@@ -940,6 +955,41 @@ export default function TabSettingsScreen() {
           }));
         } else {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
+        }
+      } else if (conversationState.phase === 'waitingForCreateResponse' && (cmd === 'y' || cmd === 'yes')) {
+        // Handle server creation confirmation
+        if (conversationState.currentServerId && pubkey) {
+          const createResult = await handleCreateChatServerWrapper(
+            conversationState.currentServerId,
+            pubkey,
+            signAndSendTransaction
+          );
+          
+          if (createResult.pda) {
+            setConversationState(prev => ({
+              ...prev,
+              phase: 'waitingForJoinResponse',
+              currentPDA: createResult.pda
+            }));
+            
+            // Show the join prompt
+            setHistory(prev => [
+              ...prev.filter(item => item.id !== 'loading'),
+              { 
+                id: uniqueId(), 
+                output: createResult.message || 'Server created successfully!\n\nJoin server? [y/n]' 
+              }
+            ]);
+          } else {
+            setHistory(prev => [
+              ...prev.filter(item => item.id !== 'loading'),
+              { 
+                id: uniqueId(), 
+                output: createResult.message || 'Failed to create server. Please try again.' 
+              }
+            ]);
+            setConversationState(prev => ({ ...prev, phase: 'idle' }));
+          }
         }
       } else if (conversationState.phase === 'waitingForJoinResponse') {
         if (!result.joined) {

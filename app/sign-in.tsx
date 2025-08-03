@@ -56,9 +56,9 @@ export default function SignIn() {
       {isLoading ? (
         <ActivityIndicator />
       ) : (
-        <SafeAreaView style={{ flex: 1, justifyContent: 'space-between' ,}}>
+        <SafeAreaView style={{ flex: 1, justifyContent: 'flex-start', paddingTop: 80 }}>
           <View />
-          <View style={{ alignItems: 'center', gap: 16 ,}}>
+          <View style={{ alignItems: 'center', gap: 16, marginTop: 40 }}>
             <AppText type="title">{AppConfig.name}</AppText>
             <Video
               source={require('@/assets/images/cloud-edit-ae.mp4')}
@@ -72,8 +72,8 @@ export default function SignIn() {
               {'Onchain P2P Messaging\nBuilt by IQ6900\nPowered by Solana'}
             </AppText>
           </View>
-          <View style={{ marginBottom: 16, }}>
-            <View style={styles.buttonContainer}>
+          <View style={{ marginTop: 40 }}>
+            <View style={[styles.buttonContainer, { marginBottom: 0 }]}>
               <TouchableOpacity
                 onPress={handleSignIn}
                 style={styles.connectButton}

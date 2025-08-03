@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, // Tighter padding to fill borders
     paddingVertical: 4,
     width: '100%', // Full width
+    marginBottom: 30, // Add margin to push the button up
   },
   promptText: {
     color: '#0f0',
@@ -124,6 +125,42 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     color: '#fff',
     fontSize: 12,
+  },
+  // PDA display styles
+  serverFoundContainer: {
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: 'rgba(0, 100, 0, 0.1)',
+    borderRadius: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: '#0f0',
+  },
+  pdaContainer: {
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: 'rgba(0, 50, 0, 0.2)',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#0f0',
+  },
+  pdaLabel: {
+    color: '#0f0',
+    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  pdaTouchable: {
+    padding: 8,
+    backgroundColor: 'rgba(0, 50, 0, 0.3)',
+    borderRadius: 4,
+  },
+  pdaText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#0f0',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });
 
