@@ -11,6 +11,7 @@ import { decodeWithPassword, encodeWithPassword } from "hanlock";
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
@@ -25,7 +26,7 @@ const pdaCheck = async (PDA: string) => {
     return await connection.getAccountInfo(PDAPubkey);
   } catch (error) {
     console.error("PDA Check failed:", error);
-    return null;  // Or throw error, depending on your needs
+    return null;
   }
 };
 
@@ -567,12 +568,44 @@ export default function TabSettingsScreen() {
   },  [publicKey]);
 
   const [messageColor, setMessageColor] = useState<string>('#1e90ff');
-const [messagePw, setMessagePW] = useState<string>('');
-const messagePwRef = useRef<string | null>(null);
+  const [messagePw, setMessagePW] = useState<string>('');
+  const messagePwRef = useRef<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
-  messagePwRef.current = messagePw;
-}, [messagePw]);
+  // Load saved encryption key on mount
+  useEffect(() => {
+    const loadEncryptionKey = async () => {
+      try {
+        const savedKey = await AsyncStorage.getItem('@solchat:encryptionKey');
+        if (savedKey) {
+          setMessagePW(savedKey);
+          messagePwRef.current = savedKey;
+        }
+      } catch (e) {
+        console.error('Failed to load encryption key', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadEncryptionKey();
+  }, []);
+
+  // Save encryption key when it changes
+  useEffect(() => {
+    const saveEncryptionKey = async () => {
+      if (messagePw) {
+        try {
+          await AsyncStorage.setItem('@solchat:encryptionKey', messagePw);
+        } catch (e) {
+          console.error('Failed to save encryption key', e);
+        }
+      }
+    };
+    
+    saveEncryptionKey();
+    messagePwRef.current = messagePw;
+  }, [messagePw]);
   const [history, setHistory] = useState<HistoryItem[]>([
       { id: 'solchat', output: solChat, type: 'ascii' },
       { id: 'welcome', output: WELCOME_MESSAGE ,type:'welcome'},
@@ -580,20 +613,40 @@ useEffect(() => {
       { id: 'select_message', output: SELECT_MESSAGE ,type:'select_message'}
   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
 
-  const onNewMessage = (msg: string) => {
-    if (messagePwRef.current && msg.includes(': ')) {
-         const [handle, encrypted] = msg.split(': ');
-         const decrypted = decodeWithPassword(encrypted, messagePwRef.current);
-         msg = `${handle}: ${decrypted}`;
-       }
+  const onNewMessage = (msg: string, isHistorical = false) => {
+    // Don't process system messages or already processed messages
+    const isSystemMessage = msg.startsWith('[') || msg.startsWith('>');
+    const shouldDecrypt = messagePwRef.current && msg.includes(': ') && !isSystemMessage;
+    
+    let processedMsg = msg;
+    let decrypted = false;
+    
+    if (shouldDecrypt && messagePwRef.current) {
+      try {
+        const [handle, encrypted] = msg.split(': ');
+        if (encrypted) {
+          const decryptedContent = decodeWithPassword(encrypted, messagePwRef.current);
+          processedMsg = `${handle}: ${decryptedContent}`;
+          decrypted = true;
+        }
+      } catch (e) {
+        console.error('Failed to decrypt message:', e);
+      }
+    }
 
-    setHistory(prev => [
-      ...prev,
-      { id: uniqueId(), output: msg.startsWith('[') ? msg : `[Chat] ${msg}` }
-    ]);
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    const newMessage = {
+      id: uniqueId(),
+      output: isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`,
+      type: decrypted ? 'decrypted' : undefined
+    };
+
+    setHistory(prev => [...prev, newMessage]);
+    
+    if (!isHistorical) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
   };
   useEffect(() => {
     return () => {

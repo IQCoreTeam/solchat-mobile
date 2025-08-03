@@ -127,8 +127,6 @@ export async function getChatRecords(pdaString: string, sizeLimit: number, onMes
             limit: sizeLimit ?? 100,
         });
 
-        console.log(`[getChatRecords] DEBUG: signatures: ${signatures} `)
-
         if (signatures.length === 0) {
             console.log('[getChatRecords] No signatures found');
             return;
@@ -146,7 +144,7 @@ export async function getChatRecords(pdaString: string, sizeLimit: number, onMes
                 console.error(`Failed to read chat for ${sig.signature}:`, err);
             }
         }
-        console.log(`[getChatRecords] Fetched ${fetchedCount} historical messages for ${pdaString}`);
+        console.log(`[getChatRecords] Fetched ${fetchedCount} historical messages for chat server ${pdaString}`);
     } catch (error) {
         console.error('Failed to fetch chat records:', error);
     }

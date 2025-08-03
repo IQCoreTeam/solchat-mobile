@@ -35,20 +35,24 @@ export async function serverInit(serverType: string, serverID: string, allowedMe
     }
 }
 
+// Check if user is initialized to Code-in, if not initialize the user
 export async function userInit() {
-          await initConfig();
-          const keypair = config.keypair;
-          if (!keypair) throw new Error("keypair not initialized");
+    
+    await initConfig();
+    const keypair = config.keypair;
+    if (!keypair) throw new Error("keypair not initialized");
+    
     const userKey = keypair.publicKey;
-    const useKeyString = userKey.toString()
-    const transaction = await createInitTransactionOnServer(useKeyString)
-    const PDA = await getDBPDA(useKeyString);
-
+    const userKeyString = userKey.toString()
+    const PDA = await getDBPDA(userKeyString);
     const isPDAExist = await pdaCheck(PDA);
+    
     if (isPDAExist) {
         console.log(`PDA Exists: ${PDA}`);
         return PDA
     }
+
+    const transaction = await createInitTransactionOnServer(userKeyString)
 
     if (transaction != null) {
         await txSend(transaction)
@@ -58,6 +62,7 @@ export async function userInit() {
     }
 }
 
+// Check if PDA exists (if user is initialized)
 export async function pdaCheck(PDA: string) {
     try {
         const PDAPubkey = new PublicKey(PDA)
@@ -69,6 +74,7 @@ export async function pdaCheck(PDA: string) {
     }
 }
 
+// Translate transaction data to a Transaction object
 export async function _translate_transaction(data: any) {
     const transaction = new Transaction();
     const connection = new Connection(network);
