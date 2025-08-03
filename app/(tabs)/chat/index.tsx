@@ -314,8 +314,35 @@ const processCommand = async (
   if (phase === 'waitingForHandle') {
     if (cmd.length === 0) return { output: 'Nickname cannot be empty:' };
     return {
-      output: `Nickname set to ${cmd}. Start chatting!`,
+      output: `Nickname set to ${cmd}.\n\nEnable encryption? [y/n]`,
       nickname: cmd,
+    };
+  }
+  
+  // Handle encryption setup after nickname is set
+  if (phase === 'waitingForEncryptionResponse') {
+    const response = cmd.toLowerCase().trim();
+    if (response === 'y') {
+      return {
+        output: 'Enter encryption key (any characters, case sensitive):',
+      };
+    } else {
+      // If user doesn't want encryption, proceed without it
+      return {
+        output: 'Starting chat without encryption.\nType /pw <key> later to enable encryption.',
+        password: undefined
+      };
+    }
+  }
+  
+  // Handle encryption key input
+  if (phase === 'waitingForEncryptionKey') {
+    if (cmd.length === 0) {
+      return { output: 'Encryption key cannot be empty. Please enter a key:' };
+    }
+    return {
+      output: `Encryption enabled with key. Starting chat...\nType /pw <key> to change encryption key.`,
+      password: cmd
     };
   }
 
@@ -511,7 +538,7 @@ const CommandInput: React.FC<{
 // Main component
 export default function TabSettingsScreen() {
   const [conversationState, setConversationState] = useState<{
-    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle'| 'waitingForPdaInput';
+    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle' | 'waitingForPdaInput' | 'waitingForEncryptionResponse' | 'waitingForEncryptionKey';
     pendingPubkey?: string | null;
     currentPDA?: string | null;
     currentServerId?: string;
@@ -550,7 +577,7 @@ useEffect(() => {
 
     setHistory(prev => [
       ...prev,
-      { id: uniqueId(), output: msg.startsWith('[') ? msg : `[Message] ${msg}` }
+      { id: uniqueId(), output: msg.startsWith('[') ? msg : `[Chat] ${msg}` }
     ]);
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -655,20 +682,81 @@ useEffect(() => {
            const filtered = prev.filter(item => item.id !== 'loading');
            return [
              ...filtered,
-             { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },
+             { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}.` },
            ];
          });
          setTimeout(() => {
            flatListRef.current?.scrollToEnd({ animated: true });
          }, 100);
          setCommand('');
+         // Move to encryption prompt phase
          setConversationState(prev => ({
            ...prev,
-           phase: 'inChat',
+           phase: 'waitingForEncryptionResponse',
            nickname: result.nickname,
          }));
          return;
-      }
+       }
+       
+       // Handle encryption response (yes/no)
+       if (conversationState.phase === 'waitingForEncryptionResponse') {
+         setHistory(prev => {
+           const filtered = prev.filter(item => item.id !== 'loading');
+           const response = command.trim().toLowerCase();
+           let newOutput = '';
+           
+           if (response === 'y') {
+             newOutput = 'Enter encryption key (any characters, case sensitive):';
+             // Move to encryption key input phase
+             setConversationState(prev => ({
+               ...prev,
+               phase: 'waitingForEncryptionKey'
+             }));
+           } else {
+             newOutput = 'Starting chat without encryption.\nType /pw <key> later to enable encryption.';
+             // Move to chat phase without encryption
+             setConversationState(prev => ({
+               ...prev,
+               phase: 'inChat'
+             }));
+           }
+           
+           return [
+             ...filtered,
+             { id: uniqueId(), output: newOutput },
+           ];
+         });
+         setCommand('');
+         return;
+       }
+       
+       // Handle encryption key input
+       if (conversationState.phase === 'waitingForEncryptionKey') {
+         const key = command.trim();
+         if (key.length === 0) {
+           setHistory(prev => [
+             ...prev.filter(item => item.id !== 'loading'),
+             { id: uniqueId(), output: 'Encryption key cannot be empty. Please enter a key:' }
+           ]);
+           return;
+         }
+         
+         setHistory(prev => {
+           const filtered = prev.filter(item => item.id !== 'loading');
+           return [
+             ...filtered,
+             { id: uniqueId(), output: `Encryption enabled with key. Starting chat...\nType /pw <key> to change encryption key.` },
+           ];
+         });
+         
+         setMessagePW(key);
+         setCommand('');
+         setConversationState(prev => ({
+           ...prev,
+           phase: 'inChat'
+         }));
+         return;
+       }
 
       setHistory(prevHistory => {
         // remove any loading message before adding the result
