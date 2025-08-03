@@ -2,20 +2,20 @@ import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
 
+import { bonkAscii, solChat } from "@/assets/ascii";
 import IQ from '@/components/iq';
-import {  encodeWithPassword,decodeWithPassword } from "hanlock";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
+import { decodeWithPassword, encodeWithPassword } from "hanlock";
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View ,Text} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
-import {solChat,bonkAscii} from "@/assets/ascii"
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
 const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
-const WELCOME_MENU = `[1] Create/Search room   [2] Enter room`;
+const WELCOME_MENU = `[1] Create/Search room \n[2] Enter room`;
 const SELECT_MESSAGE=`\nType your selection:`
 const pdaCheck = async (PDA: string) => {
   try {
@@ -48,6 +48,7 @@ interface CommandResult {
   color?: string; // change server message color
   password?:string;
     amount?:string;
+  isLeaving?: boolean; // Flag to indicate we're leaving a chat
 }
 
 // Simple test API call
@@ -200,10 +201,15 @@ const processCommand = async (
 
   const cmd = command.trim().toLowerCase();
 
-  // Always allow /help command
+  // Always allow /clear and /help commands
+  if (cmd === '/clear') {
+    return { clear: true };
+  }
+  
   if (cmd === '/help') {
     const helpText = [
       'Available commands:',
+      '/clear - Clear the screen (shows main menu if in chat)',
       '/color [blue|red|green] - Change message color',
       '/pw [key] - Set decryption key for messages',
       '/sendbonk [address] [amount] - Send BONK to another user',
@@ -246,8 +252,11 @@ const processCommand = async (
        }
 
     if (cmd === 'exit' || cmd === '/leave') {
-      return { output: 'Leaving chat...', clear: true };
-
+      return { 
+        output: '[Server] Disconnecting...',
+        clear: true,
+        isLeaving: true  // Special flag to indicate we're leaving a chat
+      };
     }
 
     if (messagePw){
@@ -460,27 +469,44 @@ const CommandHistory: React.FC<{
   );
 };
 
-// Component to render command input
+// Component to render command input 
 const CommandInput: React.FC<{
   command: string;
   setCommand: (text: string) => void;
   onSubmit: () => void;
   phase: string;
-}> = ({ command, setCommand, onSubmit, phase}) => (
-  <View style={styles.inputContainer}>
-    <AppText style={styles.prompt}>$ </AppText>
-    <TextInput
-      style={styles.input}
-      value={command}
-      onChangeText={setCommand}
-      onSubmitEditing={onSubmit}
-      placeholder={phase === 'waitingForServerId' ? 'Server ID:' : phase === 'inChat' ? 'Type message...' : 'Enter command...'}      placeholderTextColor="#888"
-      autoCapitalize="none"
-      autoCorrect={false}
-      returnKeyType="send"
-    />
-  </View>
-);
+}> = ({ command, setCommand, onSubmit, phase }) => {
+  const inputRef = useRef<TextInput>(null);
+  const getPlaceholder = () => {
+    if (phase === 'waitingForServerId') return 'Server ID:';
+    if (phase === 'inChat') return 'Type message...';
+    return 'Enter command...';
+  };
+  return (
+    <View style={styles.inputWrapper}>
+      <AppText style={styles.promptText}>$</AppText>
+      <TextInput
+        ref={inputRef}
+        style={styles.input}
+        value={command}
+        onChangeText={setCommand}
+        onSubmitEditing={onSubmit}
+        placeholder={getPlaceholder()}
+        placeholderTextColor="#0f0"
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="send"
+        cursorColor="#0f0"
+        selectionColor="rgba(0, 255, 0, 0.5)"
+        selectTextOnFocus
+        autoFocus
+        // @ts-ignore - custom cursor width for Android
+        cursorWidth={3}
+        underlineColorAndroid="transparent" // Removes Android default underline to prevent grey artifacts
+      />
+    </View>
+  );
+};
 
 // Main component
 export default function TabSettingsScreen() {
@@ -567,28 +593,41 @@ useEffect(() => {
                                           messagePw
                                           );
       if (result.clear) {
-        // Unsubscribe from any active chat log listener
-        if (subscriptionRef.current !== null) {
-          const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
-          connection.removeOnLogsListener(subscriptionRef.current);
-          subscriptionRef.current = null;
+        // Handle /leave command - show disconnecting and clear to welcome screen
+        if (result.isLeaving && conversationState.phase === 'inChat') {
+          // Unsubscribe from chat if needed
+          if (subscriptionRef.current !== null) {
+            const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
+            connection.removeOnLogsListener(subscriptionRef.current);
+            subscriptionRef.current = null;
+          }
+          
+          // Show disconnecting message briefly
+          setHistory([
+            { id: uniqueId(), output: result.output || '[Server] Disconnecting...' }
+          ]);
+          
+          // After a short delay, clear to welcome screen
+          setTimeout(() => {
+            setHistory([
+              { id: uniqueId(), output: solChat, type: 'ascii' },
+              { id: uniqueId(), output: WELCOME_MESSAGE, type: 'welcome' },
+              { id: uniqueId(), output: WELCOME_MENU, type: 'welcome_menu' },
+              { id: uniqueId(), output: SELECT_MESSAGE, type: 'select_message' }
+            ]);
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 300);
+          
+          setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+        } 
+        // Handle /clear command - just clear the screen
+        else {
+          setHistory([]);
         }
-        setHistory(prev => [
-          ...prev,
-          { id: uniqueId(), output: '[Server] Disconnecting...' },
-          { id: uniqueId(), output: '-------------------------------------' },
-          { id: uniqueId(), output: solChat, type: 'ascii' },
-          { id: uniqueId(), output: WELCOME_MESSAGE ,type:'welcome'},
-          { id: uniqueId(), output: WELCOME_MENU ,type:'welcome_menu'},
-          { id: uniqueId(), output: SELECT_MESSAGE ,type:'select_message'}
-        ]);
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        
         setMessageColor('#1e90ff');
         setCommand('');
-        setMessagePW('')
-        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+        setMessagePW('');
         return;
       }
 
