@@ -255,7 +255,7 @@ const processCommand = async (
       return { 
         output: '[Server] Disconnecting...',
         clear: true,
-        isLeaving: true  // Special flag to indicate we're leaving a chat
+        isLeaving: true  
       };
     }
 
@@ -276,12 +276,13 @@ const processCommand = async (
       return { output: 'Error sending message.' };
     }
   }
-  // Handle ongoing phases first
+  // handle ongoing phases first
   if (phase === 'waitingForServerId') {
-  // Use this input as serverId and complete the action
+
   const actionOutput = await handleChatServerAction(cmd, pubkey);  // cmd is the serverId
+
+  // show error to  user
   if (actionOutput.message.startsWith('Error:') || actionOutput.message.startsWith('API Error:')) {
-    // Append prompt after error
     return { output: `${actionOutput.message}\nType your selection:` };
   }
   return { output: actionOutput.message, pda: actionOutput.pda };
@@ -303,7 +304,7 @@ const processCommand = async (
   }
   if (phase === 'waitingForCreateResponse') {
     if (cmd === 'y' || cmd === 'yes') {
-      return { output: '[*] Preparing to create server...', created: true };  // Flag to trigger in component
+      return { output: '[*] Preparing to create server...', created: true };
     } else if (cmd === 'n' || cmd === 'no') {
       return {  output: WELCOME_MESSAGE,type:'welcome', clear: true };
     } else {
@@ -315,7 +316,7 @@ const processCommand = async (
     return {
       output: `Nickname set to ${cmd}. Start chatting!`,
       nickname: cmd,
-    };  // custom field we’ll use below
+    };
   }
 
   switch (cmd) {
@@ -356,7 +357,6 @@ const CommandHistory: React.FC<{
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
-  // Handle tap on text
   const handleTextPress = (text: string) => {
     setSelectedItem(text);
     Clipboard.setString(text);
@@ -568,7 +568,8 @@ useEffect(() => {
 
   const handleCommandSubmit = async () => {
     const lowerCmd = command.trim().toLowerCase();
-    // Block restricted actions if user not initialized
+
+    // if user is not initialized, block actions
     if (isUserInitialized === false) {
       const restrictedPhases = ['idle', 'waitingForServerId', 'waitingForJoinResponse', 'waitingForCreateResponse', 'waitingForPdaInput'];
       const wantsRestricted = (conversationState.phase === 'idle' && (lowerCmd === '1' || lowerCmd === '2')) || restrictedPhases.includes(conversationState.phase as string);
@@ -581,7 +582,6 @@ useEffect(() => {
     if (command.trim() === '') return;
 
     const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
-    // Add the command to history immediately
     setHistory(prevHistory => [...prevHistory, newEntry, { id: uniqueId(), output: 'Loading...' }]);
 
     try {
@@ -593,21 +593,21 @@ useEffect(() => {
                                           messagePw
                                           );
       if (result.clear) {
-        // Handle /leave command - show disconnecting and clear to welcome screen
+        // handle /leave command - show disconnecting and clear to welcome screen
         if (result.isLeaving && conversationState.phase === 'inChat') {
-          // Unsubscribe from chat if needed
+          // unsubscribe from chat if needed
           if (subscriptionRef.current !== null) {
             const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
             connection.removeOnLogsListener(subscriptionRef.current);
             subscriptionRef.current = null;
           }
           
-          // Show disconnecting message briefly
+          // show disconnecting message briefly
           setHistory([
             { id: uniqueId(), output: result.output || '[Server] Disconnecting...' }
           ]);
           
-          // After a short delay, clear to welcome screen
+          // short delay before clearing to welcome screen
           setTimeout(() => {
             setHistory([
               { id: uniqueId(), output: solChat, type: 'ascii' },
@@ -616,11 +616,11 @@ useEffect(() => {
               { id: uniqueId(), output: SELECT_MESSAGE, type: 'select_message' }
             ]);
             flatListRef.current?.scrollToEnd({ animated: true });
-          }, 300);
+          }, 500);
           
           setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
         } 
-        // Handle /clear command - just clear the screen
+        // handle /clear command - just clear the screen
         else {
           setHistory([]);
         }
@@ -651,7 +651,6 @@ useEffect(() => {
           }
 
        if (result.nickname) {
-        // Remove loading entry and add nickname confirmation
         setHistory(prev => {
            const filtered = prev.filter(item => item.id !== 'loading');
            return [
@@ -672,7 +671,7 @@ useEffect(() => {
       }
 
       setHistory(prevHistory => {
-        // Remove any loading message before adding the result
+        // remove any loading message before adding the result
         const filtered = prevHistory.filter(item => item.id !== 'loading');
         return [
           ...filtered,
@@ -681,13 +680,13 @@ useEffect(() => {
       });
       setCommand('');
 
-      // Update conversation state based on command
+      // update conversation state based on command
       const cmd = command.trim().toLowerCase();
 
       if (cmd === '1' && conversationState.phase === 'idle') {
         setConversationState(prev => ({ ...prev, phase: 'waitingForServerId', pendingPubkey: pubkey }));
       } else if (conversationState.phase === 'waitingForServerId') {
-        // Check if the output contains the join prompt
+        // check if output contains the join prompt
         if (result.output && result.output.includes('Join server? [y/n]')) {
           setConversationState(prev => ({
                        ...prev,
@@ -746,7 +745,6 @@ useEffect(() => {
         ]);
         setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));
         return;
-         //setConversationState(prev => ({ ...prev, phase: 'inChat' }));
        }
 
        if (result.created && conversationState.currentServerId && pubkey) {
@@ -766,10 +764,10 @@ useEffect(() => {
       }
 
 
-      // Scroll to bottom after state updates
+      // auto-scroll to bottom after command is processed
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 200);
     } catch (error) {
       console.error('Error processing command:', error);
       setHistory(prevHistory => {
