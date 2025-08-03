@@ -5,13 +5,13 @@ import { useWalletUi } from '@/components/solana/use-wallet-ui';
 import { bonkAscii, solChat } from "@/assets/ascii";
 import IQ from '@/components/iq';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
 import { decodeWithPassword, encodeWithPassword } from "hanlock";
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
@@ -30,7 +30,8 @@ const pdaCheck = async (PDA: string) => {
   }
 };
 
-// TypeScript interface for history items
+// Interfaces for UI
+
 interface HistoryItem {
   id: string;
   input?: string;
@@ -39,17 +40,17 @@ interface HistoryItem {
 }
 
 interface CommandResult {
-    type?:string;
+  type?:string;
   output?: string;
   clear?: boolean;
   pda?: string;
   joined?: boolean;
   created?: boolean;
   nickname?: string;
-  color?: string; // change server message color
+  serverMessageColor?: string; // change server message color
   password?:string;
-    amount?:string;
-  isLeaving?: boolean; // Flag to indicate we're leaving a chat
+  amount?:string;
+  isLeavingChat?: boolean; 
 }
 
 // Simple test API call
@@ -59,28 +60,14 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
     // valid pda
     // BHcXCRmnPWNz31UUJEhe8W46seNrDH6ZysHyug5XNmCd
-    console.log(`DEBUG: in handleChatServerAction`)
-    console.log(`DEBUG: serverId : ${serverId}`)
-    console.log(`DEBUG: pubkey : ${pubkey}`)
-
-    IQ.userInit();
-    //const pubkeyFromSdk = await IQ.getMyPublicKey();
-    //await IQ.userInit();
-    //await IQ.codeIn("Hello World", "app-test", "example-handle");
-    //console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)
-    const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
-
     // working mainnet PDA - just enter 'test' when prompted for serverId
     //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
 
-    console.log(`DEBUG: fetching ${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
+    IQ.userInit();
+    const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
     const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
 
-    console.log(`DEBUG: response body : ${response.body}`)
-    console.log(`DEBUG: response status : ${response.status}`)
-
-    console.log(`DEBUG: response : ${response}`)
     if (!response.ok) {
       if (response.status === 500) {
         return { message: 'Error: PDA not found'};
@@ -243,7 +230,7 @@ const processCommand = async (
         default:
           return { output: 'Supported colors: blue, red, green' };
       }
-      return { output: `Message color changed to ${colorArg}.`, color: hex };
+      return { output: `Message color changed to ${colorArg}.`, serverMessageColor: hex };
     }
    if(cmd.startsWith('/pw ')){
        const pwArg = cmd.replace(/^\/pw\s+/, '').trim();
@@ -268,7 +255,7 @@ const processCommand = async (
       return { 
         output: '[Server] Disconnecting...',
         clear: true,
-        isLeaving: true  
+        isLeavingChat: true  
       };
     }
 
@@ -608,10 +595,72 @@ export default function TabSettingsScreen() {
   }, [messagePw]);
   const [history, setHistory] = useState<HistoryItem[]>([
       { id: 'solchat', output: solChat, type: 'ascii' },
-      { id: 'welcome', output: WELCOME_MESSAGE ,type:'welcome'},
-      { id: 'welcome_menu', output: WELCOME_MENU ,type:'welcome_menu'},
-      { id: 'select_message', output: SELECT_MESSAGE ,type:'select_message'}
-  ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
+      { id: 'welcome', output: WELCOME_MESSAGE, type: 'welcome' },
+      { id: 'welcome_menu', output: WELCOME_MENU, type: 'welcome_menu' },
+      { id: 'select_message', output: SELECT_MESSAGE, type: 'select_message' }
+  ]);
+  
+  const flatListRef = useRef<FlatList<HistoryItem>>(null);
+
+  const handleJoinChatServerWrapper = async (pda: string, onNewMessage: (msg: string) => void): Promise<{ message: string; subscriptionId: number | null }> => {
+    setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse' }));
+    // Ensure UI updates before showing loading state
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    try {
+      // Call the imported handleJoinChatServer function from the top of the file
+      const result = await handleJoinChatServer(pda, onNewMessage);
+      return result;
+    } catch (error) {
+      console.error('Error joining chat server:', error);
+      return { message: 'Failed to join chat server. Please try again.', subscriptionId: null };
+    }
+  };
+
+  const handleCreateChatServerWrapper = async (serverId: string, pubkey: string | null, signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>): Promise<{ message: string; pda?: string }> => {
+    setConversationState(prev => ({ ...prev, phase: 'waitingForCreateResponse' }));
+    // Ensure UI updates before showing loading state
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    try {
+      // Call the imported handleCreateChatServer function from the top of the file
+      const result = await handleCreateChatServer(serverId, pubkey, signAndSendTransaction);
+      return result;
+    } catch (error) {
+      console.error('Error creating chat server:', error);
+      return { message: 'Failed to create chat server. Please try again.', pda: undefined };
+    }
+  };
+
+  const handleSetNickname = (nickname: string) => {
+    setConversationState(prev => ({ ...prev, nickname, phase: 'waitingForEncryptionResponse' }));
+    // Small delay to ensure state updates before scrolling
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    return { output: `Nickname set to: ${nickname}\n\nEnable end-to-end encryption? (y/n)` };
+  };
+
+  // Auto-scroll to bottom when history or conversation state changes
+  useEffect(() => {
+    if (flatListRef.current) {
+      // Small delay to ensure the UI has updated
+      const timer = setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [history, conversationState.phase]);
+
+  // Auto-scroll to bottom when history or conversation state changes
+  useEffect(() => {
+    if (flatListRef.current) {
+      const timer = setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [history, conversationState.phase]);
 
   const onNewMessage = (msg: string, isHistorical = false) => {
     // Don't process system messages or already processed messages
@@ -641,12 +690,6 @@ export default function TabSettingsScreen() {
     };
 
     setHistory(prev => [...prev, newMessage]);
-    
-    if (!isHistorical) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
   };
   useEffect(() => {
     return () => {
@@ -660,6 +703,16 @@ export default function TabSettingsScreen() {
 
   const handleCommandSubmit = async () => {
     const lowerCmd = command.trim().toLowerCase();
+    
+    // Auto-scroll when command is submitted
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    
+    // Auto-scroll when command is submitted
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
 
     // if user is not initialized, block actions
     if (isUserInitialized === false) {
@@ -686,7 +739,7 @@ export default function TabSettingsScreen() {
                                           );
       if (result.clear) {
         // handle /leave command - show disconnecting and clear to welcome screen
-        if (result.isLeaving && conversationState.phase === 'inChat') {
+        if (result.isLeavingChat && conversationState.phase === 'inChat') {
           // unsubscribe from chat if needed
           if (subscriptionRef.current !== null) {
             const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
@@ -723,8 +776,8 @@ export default function TabSettingsScreen() {
         return;
       }
 
-      if (result.color) {
-         setMessageColor(result.color);
+      if (result.serverMessageColor) {
+         setMessageColor(result.serverMessageColor);
        }
       if(result.password){
           // First set the password
@@ -899,7 +952,7 @@ export default function TabSettingsScreen() {
     }else if (conversationState.phase === 'waitingForPdaInput') {
        const pda = command.trim();
 
-       const { message: joinOutput, subscriptionId } = await handleJoinChatServer(pda, onNewMessage);
+       const { message: joinOutput, subscriptionId } = await handleJoinChatServerWrapper(pda, onNewMessage);
        subscriptionRef.current = subscriptionId;
 
        // UI display
@@ -914,7 +967,7 @@ export default function TabSettingsScreen() {
      }
 
      if (result.joined && conversationState.currentPDA) {
-         const { message: joinOutput, subscriptionId } = await handleJoinChatServer(conversationState.currentPDA, onNewMessage);
+         const { message: joinOutput, subscriptionId } = await handleJoinChatServerWrapper(conversationState.currentPDA, onNewMessage);
          subscriptionRef.current = subscriptionId;
          setHistory(prev => {
            const lastItem = prev[prev.length - 1];
@@ -926,46 +979,19 @@ export default function TabSettingsScreen() {
          });
          setHistory(prev => [
           ...prev,
-          { id: uniqueId(), output: 'Choose a nickname:' },
+          { id: uniqueId(), output: 'Choose a nickname:' }
         ]);
         setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));
-        return;
-       }
-
-       if (result.created && conversationState.currentServerId && pubkey) {
-        const createResult = await handleCreateChatServer(conversationState.currentServerId, pubkey, signAndSendTransaction);
-        setHistory(prev => {
-          const lastItem = prev[prev.length - 1];
-          if (lastItem.output === 'Preparing to create server...') {
-            return [...prev.slice(0, -1), { ...lastItem, output: createResult.message }];
-          }
-          return [...prev, { id: uniqueId(), output: createResult.message }];
-        });
-        if (createResult.pda) {
-          setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse', currentPDA: createResult.pda }));
-        } else {
-          setConversationState(prev => ({ ...prev, phase: 'idle' }));
-        }
       }
-
-
-      // auto-scroll to bottom after command is processed
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 200);
     } catch (error) {
       console.error('Error processing command:', error);
-      setHistory(prevHistory => {
-        // Remove any loading message before adding the error
-        const filtered = prevHistory.filter(item => item.id !== 'loading');
-        return [
-          ...filtered,
-          {
-            id: uniqueId(),
-            output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}`
-          }
-        ];
-      });
+      setHistory(prev => [
+        ...prev,
+        { 
+          id: uniqueId(), 
+          output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}`
+        }
+      ]);
       setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
     }
   };
