@@ -246,7 +246,15 @@ const processCommand = async (
     }
    if(cmd.startsWith('/pw ')){
        const pwArg = cmd.replace(/^\/pw\s+/, '').trim();
-       return { output: `Decode key Set to to ${pwArg}.`, password: pwArg };
+       if (!pwArg) {
+           return { output: 'Usage: /pw <key> - Set decryption key' };
+       }
+       // Return the password to be set in the component state
+       // The component will handle updating the messages with the new password
+       return { 
+           output: 'Decryption key updated. Reprocessing messages...', 
+           password: pwArg 
+       };
    }
    if(cmd.startsWith('/sendbonk ')){
         const address = cmd.split(' ')[1];
@@ -666,7 +674,39 @@ useEffect(() => {
          setMessageColor(result.color);
        }
       if(result.password){
+          // First set the password
           setMessagePW(result.password);
+          
+          // Create decrypted versions of existing messages and append them
+          setHistory(prevHistory => {
+              const newEntries: HistoryItem[] = [];
+              
+              // Keep all original messages
+              const updatedHistory = [...prevHistory];
+              
+              // Find and add decrypted versions of encrypted messages
+              prevHistory.forEach(msg => {
+                  if (msg.output && msg.output.includes(': ')) {
+                      const [handle, encrypted] = msg.output.split(': ');
+                      try {
+                          const decrypted = decodeWithPassword(encrypted, result.password!);
+                          // Only add if decryption was successful and different from original
+                          if (decrypted !== encrypted) {
+                              newEntries.push({
+                                  id: `${msg.id}-decrypted`,
+                                  output: `[Decrypted] ${handle}: ${decrypted}`,
+                                  type: 'decrypted'
+                              });
+                          }
+                      } catch (e) {
+                          // Skip if decryption fails
+                      }
+                  }
+              });
+              
+              // Append all new decrypted messages
+              return [...updatedHistory, ...newEntries];
+          });
       }
       if(result.amount){
 
