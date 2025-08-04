@@ -319,6 +319,11 @@ const processCommand = async (
       };
     }
   }
+  if (phase === 'waitingForPdaInput'){
+       return {
+              output: 'Joining the server:'+cmd,
+       };
+  }
   // Handle encryption key input
   if (phase === 'waitingForEncryptionKey') {
     if (cmd.length === 0) {
@@ -630,6 +635,7 @@ export default function TabSettingsScreen() {
     }
   }, [history, conversationState.phase]);
   const onNewMessage = (msg: string, isHistorical = false) => {
+
     // Don't process system messages or already processed messages
     const isSystemMessage = msg.startsWith('[') || msg.startsWith('>');
     const shouldDecrypt = messagePwRef.current && msg.includes(': ') && !isSystemMessage;
@@ -751,10 +757,25 @@ useEffect(() => {
         // handle /clear command - just clear the screen
         else {
           setHistory([]);
+          if (conversationState.phase !== 'inChat') {
+
+                        setTimeout(() => {
+                          setHistory([
+                            { id: uniqueId(), output: solChat, type: 'ascii' },
+                            { id: uniqueId(), output: WELCOME_MESSAGE, type: 'welcome' },
+                            { id: uniqueId(), output: WELCOME_MENU, type: 'welcome_menu' },
+                            { id: uniqueId(), output: SELECT_MESSAGE, type: 'select_message' }
+                          ]);
+                          flatListRef.current?.scrollToEnd({ animated: true });
+                        }, 500);
+                        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+          }
+
         }
         setMessageColor('#1e90ff');
         setCommand('');
         setMessagePW('');
+        messagePwRef.current = null;
         return;
       }
       if (result.serverMessageColor) {
