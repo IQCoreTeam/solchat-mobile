@@ -610,7 +610,7 @@ export default function TabSettingsScreen() {
             id: uniqueId(),
             output: processedOutput,
             type: decrypted ? 'decrypted' : undefined,
-            timestamp: now  // NEW: Add timestamp
+            timestamp: now 
         }];
     });
 };
@@ -637,11 +637,8 @@ useEffect(() => {
     // Auto-scroll when command is submitted
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
-    // Auto-scroll when command is submitted
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
+    }, 100);
+
     // if user is not initialized, block actions
     if (isUserInitialized === false) {
       const restrictedPhases = ['idle', 'waitingForServerId', 'waitingForJoinResponse', 'waitingForCreateResponse', 'waitingForPdaInput'];
