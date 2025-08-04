@@ -1,9 +1,13 @@
 import { useRouter } from 'expo-router';
 import { View, TouchableOpacity } from 'react-native';
 import { AppText } from '@/components/app-text';
+import { useCluster } from '@/components/cluster/cluster-provider';
+import { ClusterNetwork } from '@/components/cluster/cluster-network';
 
 export function AccountUiButtons() {
   const router = useRouter();
+  const { selectedCluster } = useCluster();
+  const isMainnet = selectedCluster.network === ClusterNetwork.Mainnet;
 
   const buttonStyle = {
     borderRadius: 2,
@@ -18,9 +22,11 @@ export function AccountUiButtons() {
 
   return (
     <View style={{ flexDirection: 'row', gap: 4, justifyContent: 'center' }}>
-      <TouchableOpacity onPress={() => router.navigate('/(tabs)/account/airdrop')} style={buttonStyle}>
-        <AppText type="defaultSemiBold" style={textStyle}>Airdrop</AppText>
-      </TouchableOpacity>
+      {!isMainnet && (
+        <TouchableOpacity onPress={() => router.navigate('/(tabs)/account/airdrop')} style={buttonStyle}>
+          <AppText type="defaultSemiBold" style={textStyle}>Airdrop</AppText>
+        </TouchableOpacity>
+      )}
       <TouchableOpacity onPress={() => router.navigate('/(tabs)/account/send')} style={buttonStyle}>
         <AppText type="defaultSemiBold" style={textStyle}>Send</AppText>
       </TouchableOpacity>
