@@ -16,7 +16,7 @@ import styles from './styles';
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const NETWORK = clusterApiUrl('devnet');  // Adjust as needed
 const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
-const WELCOME_MENU = `[1] Create/Search room \n[2] Enter room`;
+const WELCOME_MENU = `[1] Create/Search my rooms \n[2] Enter friend's room`;
 const SELECT_MESSAGE=`\nType your selection:`
 const pdaCheck = async (PDA: string) => {
   try {
@@ -83,22 +83,33 @@ const handleChatServerAction = async (serverId: string| null, pubkey: string | n
     }
 
     const data = await response.json();
-    console.log(`DEBUG: data : ${data}`)
+    console.log('DEBUG: data:', data);
     if (data && data.PDA) {
       console.log(`Fetched PDA: ${data.PDA}`);
-      const pdaCheckResult = await pdaCheck(data.PDA);
-      console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)
-      if (pdaCheckResult) {
-        console.log(`PDA found: ${pdaCheckResult}`);
-        // Return the server found message with PDA
+      try {
+        const pdaCheckResult = await pdaCheck(data.PDA);
+        console.log('DEBUG: pdaCheckResult:', pdaCheckResult);
+        
+        if (pdaCheckResult) {
+          console.log('PDA found and validated');
+          // Return the server found message with PDA
+          return { 
+            message: `Server found!\n\nPDA (share this to your friends):\n${data.PDA}\n\nJoin server? [y/n]`,
+            pda: data.PDA
+          };
+        } else {
+          console.log('PDA check returned null/undefined, server may not exist yet');
+          return { 
+            message: 'Server not found. Would you like to create a new server? [y/n]',
+            pda: data.PDA // Still return the PDA as we'll need it for creation
+          };
+        }
+      } catch (error) {
+        console.error('Error during PDA check:', error);
         return { 
-          message: `Server found!\n\nPDA:\n${data.PDA}\n\nJoin server? [y/n]`,
-          pda: data.PDA
+          message: 'Error verifying server. The server may not exist yet. Would you like to create it? [y/n]',
+          pda: data.PDA // Still return the PDA as we'll need it for creation
         };
-      }
-      else {
-        console.log(`PDA not found. Prompting user to create a new server`);
-        return { message: 'PDA not found. Would you like to create a new server? [y/n]'};
       }
     } else {
       return { message: 'Error: could not find PDA from backend service'};
@@ -120,13 +131,13 @@ const handleJoinChatServer = async (
     const sigs = await IQ.fetchDataSignatures(pda, 100);
     const totalMessages = sigs.length;
     
-    // Only load the last 5 messages
-    const messagesToLoad = 5;
+    // Only load the last 4 
+    const messagesToLoad = 4;
     const startIdx = Math.max(0, totalMessages - messagesToLoad);
     
     // Only show loading banner if there are messages to load
     const loadingBanner = totalMessages > 1 
-      ? `[Server] Loading ${startIdx + 1}-${totalMessages} of ${totalMessages} messages...`
+      ? `[Server] Loading last ${messagesToLoad} messages (${startIdx + 1}/${totalMessages})...`
       : `[Server] No messages in this server yet.`;
 
     // Show loading banner first
@@ -167,29 +178,6 @@ const handleCreateChatServer = async (serverId: string, pubkey: string | null, s
   } catch (error) {
     console.error('Create server failed:', error);
     return { message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` };
-  }
-};
-
-const appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => Promise<Transaction>): Promise<string> => {
-  try {
-    const connection = new Connection(NETWORK, 'confirmed'); 
-    let blockHash = await connection.getLatestBlockhash();
-    while (!blockHash) { 
-      blockHash = await connection.getLatestBlockhash();
-    }
-    tx.recentBlockhash = blockHash.blockhash;
-    tx.lastValidBlockHeight = blockHash.lastValidBlockHeight;
-    const signedTx = await signTransaction(tx);  // Wallet signs
-    const txid = await connection.sendTransaction(signedTx, [], { skipPreflight: true });
-    await connection.confirmTransaction({
-      signature: txid,
-      blockhash: blockHash.blockhash, 
-      lastValidBlockHeight: blockHash.lastValidBlockHeight,
-    });
-    return txid;
-  } catch (error) {
-    console.error('Transaction send failed:', error);
-    return 'null';
   }
 };
 
@@ -375,7 +363,7 @@ const processCommand = async (
         ].join('\n'),
       };
     case '1':
-      return { output: 'Enter Server ID:' };
+      return { output: 'Enter Server Alias:' };
 
     case '2':
       return { output: 'Enter PDA:' };
@@ -923,15 +911,66 @@ export default function TabSettingsScreen() {
          return;
        }
 
+      // Update history with the result, removing any loading message
       setHistory(prevHistory => {
-        // remove any loading message before adding the result
         const filtered = prevHistory.filter(item => item.id !== 'loading');
-        return [
-          ...filtered,
-          { id: uniqueId(), output: result.output }
-        ];
+        // If we have an output, add it to history
+        if (result.output) {
+          return [
+            ...filtered,
+            { id: uniqueId(), output: result.output }
+          ];
+        }
+        return filtered;
       });
+      
+      // Clear the command input
       setCommand('');
+      
+      // Ensure we're not stuck in a loading state
+      if (conversationState.phase === 'waitingForServerId' && result.pda) {
+        // If we have a PDA but no output, we might be stuck
+        if (!result.output) {
+          setHistory(prev => [
+            ...prev.filter(item => item.id !== 'loading'),
+            { 
+              id: uniqueId(), 
+              output: `Server found!\n\nPDA:\n${result.pda}\n\nJoin server? [y/n]` 
+            }
+          ]);
+          setConversationState(prev => ({
+            ...prev,
+            phase: 'waitingForJoinResponse',
+            currentPDA: result.pda,
+            pendingPubkey: pubkey
+          }));
+          return;
+        }
+      }
+      
+      // If we just sent a message (indicated by [Sent] in the output)
+      // and we're in a chat, trigger an immediate message fetch
+      if (result.output && result.output.includes('[Sent]') && conversationState.phase === 'inChat' && conversationState.currentPDA) {
+        try {
+          // Fetch the latest messages after a short delay to ensure the transaction is processed
+          setTimeout(async () => {
+            await IQ.getChatRecords(conversationState.currentPDA!, 1, (msg) => {
+              // Only process the message if it's not already in the history
+              setHistory(prev => {
+                const messageExists = prev.some(item => 
+                  item.output && item.output.includes(msg)
+                );
+                if (!messageExists) {
+                  return [...prev, { id: uniqueId(), output: msg }];
+                }
+                return prev;
+              });
+            });
+          }, 3000); // 1 second delay to ensure the transaction is processed
+        } catch (error) {
+          console.error('Error fetching messages after send:', error);
+        }
+      }
 
       // update conversation state based on command
       const cmd = command.trim().toLowerCase();
@@ -956,39 +995,54 @@ export default function TabSettingsScreen() {
         } else {
           setConversationState(prev => ({ ...prev, phase: 'idle' }));
         }
-      } else if (conversationState.phase === 'waitingForCreateResponse' && (cmd === 'y' || cmd === 'yes')) {
-        // Handle server creation confirmation
-        if (conversationState.currentServerId && pubkey) {
-          const createResult = await handleCreateChatServerWrapper(
-            conversationState.currentServerId,
-            pubkey,
-            signAndSendTransaction
-          );
-          
-          if (createResult.pda) {
-            setConversationState(prev => ({
-              ...prev,
-              phase: 'waitingForJoinResponse',
-              currentPDA: createResult.pda
-            }));
+      } else if (conversationState.phase === 'waitingForCreateResponse') {
+        if (cmd === 'n' || cmd === 'no') {
+          // User chose not to create a server, return to main menu
+          setHistory(prev => [
+            ...prev.filter(item => item.id !== 'loading'),
+            { id: uniqueId(), output: WELCOME_MESSAGE, type: 'welcome' },
+            { id: uniqueId(), output: WELCOME_MENU, type: 'welcome_menu' }
+          ]);
+          setConversationState(prev => ({
+            ...prev,
+            phase: 'idle',
+            currentServerId: undefined
+          }));
+          return;
+        } else if (cmd === 'y' || cmd === 'yes') {
+          // Handle server creation confirmation
+          if (conversationState.currentServerId && pubkey) {
+            const createResult = await handleCreateChatServerWrapper(
+              conversationState.currentServerId,
+              pubkey,
+              signAndSendTransaction
+            );
             
-            // Show the join prompt
-            setHistory(prev => [
-              ...prev.filter(item => item.id !== 'loading'),
-              { 
-                id: uniqueId(), 
-                output: createResult.message || 'Server created successfully!\n\nJoin server? [y/n]' 
-              }
-            ]);
-          } else {
-            setHistory(prev => [
-              ...prev.filter(item => item.id !== 'loading'),
-              { 
-                id: uniqueId(), 
-                output: createResult.message || 'Failed to create server. Please try again.' 
-              }
-            ]);
-            setConversationState(prev => ({ ...prev, phase: 'idle' }));
+            if (createResult.pda) {
+              setConversationState(prev => ({
+                ...prev,
+                phase: 'waitingForJoinResponse',
+                currentPDA: createResult.pda
+              }));
+              
+              // Show the join prompt
+              setHistory(prev => [
+                ...prev.filter(item => item.id !== 'loading'),
+                { 
+                  id: uniqueId(), 
+                  output: createResult.message || 'Server created successfully!\n\nJoin server? [y/n]' 
+                }
+              ]);
+            } else {
+              setHistory(prev => [
+                ...prev.filter(item => item.id !== 'loading'),
+                { 
+                  id: uniqueId(), 
+                  output: createResult.message || 'Failed to create server. Please try again.' 
+                }
+              ]);
+              setConversationState(prev => ({ ...prev, phase: 'idle' }));
+            }
           }
         }
       } else if (conversationState.phase === 'waitingForJoinResponse') {
