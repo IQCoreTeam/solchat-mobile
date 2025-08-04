@@ -9,11 +9,13 @@ import {
 import { config } from "./config";
 import { getChunk, isMerkleRoot } from "./utils";
 
+
 const network = config.rpc;
 const transactionSizeLimit = config.transactionSizeLimit;
 // Single global connection instance with 'finalized' commitment level
-const connection = new Connection(network, 'confirmed');
-const readConnection = new Connection(network, 'processed');
+// const connection = new Connection(network, 'confirmed');
+// const readConnection = new Connection(network, 'processed');
+
 
 
 async function bringOffset(dataTxid: string) {
@@ -25,7 +27,7 @@ async function bringOffset(dataTxid: string) {
     return txInfo.offset;
 }
 
-export async function fetchDataSignatures(address: string, max = 100) {
+export async function fetchDataSignatures( connection: Connection,address: string, max = 100) {
 
     try {
         const DBPDA = new PublicKey(address);
@@ -119,8 +121,9 @@ export async function fetchLargeFileAndDoCache(txId: string): Promise<string> {
     }
     return data.result;
 }
-export async function getChatRecords(pdaString: string, sizeLimit: number, onMessage: (msg: string) => void): Promise<void> {
+export async function getChatRecords( connection: Connection,pdaString: string, sizeLimit: number, onMessage: (msg: string) => void): Promise<void> {
     const chatPDA = new PublicKey(pdaString);
+
     try {
         console.log(`Using RPC: ${network}`);
         const signatures = await connection.getSignaturesForAddress(chatPDA, {
@@ -150,10 +153,10 @@ export async function getChatRecords(pdaString: string, sizeLimit: number, onMes
     }
 
 }
-export async function joinChat(pdaString: string, onMessage: (msg: string) => void): Promise<number> {
+export async function joinChat( connection: Connection,pdaString: string, onMessage: (msg: string) => void): Promise<number> {
     const chatPDA = new PublicKey(pdaString);
     console.log(`Join chat on ${pdaString} ...`);
-  
+
     const subscriptionId = connection.onLogs(
       chatPDA,
       async (logs, ctx) => {
