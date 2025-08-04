@@ -51,6 +51,7 @@ interface CommandResult {
   amount?:string;
   isLeavingChat?: boolean;
   joinPrompt?: string; // NEW: Added for separate join prompt rendering
+  transactionId?: string; // NEW: Added for transaction ID copy functionality
 }
 // Simple test API call
 const handleChatServerAction = async (connection:Connection,serverId: string| null, pubkey: string | null): Promise<{
@@ -150,7 +151,6 @@ const handleCreateChatServer = async (connection:Connection,serverId: string, pu
 
     const isPDAExist = await pdaCheck(connection,PDA);
     if (isPDAExist) {
-      // CHANGED: Return separate fields
       return { message: `Server already exists.`, pda: PDA, joinPrompt: `Join server? [y/n]` };
     }
     const transactionData = await IQ.createServerInitTransactionOnServer(userKeyString, 'group_chat', serverId, 'public');
@@ -255,7 +255,10 @@ const processCommand = async (
       nickname ?? 'anonymous'
     );
     if (success) {
-      return { output: `[Sent] ${success}` };
+      return { 
+        output: '[Sent]',
+        transactionId: success // Store transaction ID separately for copy functionality
+      };
     }
     else {
       return { output: 'Error sending message.' };
@@ -438,7 +441,11 @@ const CommandHistory: React.FC<{
                   : styles.outputText,
                 selectedItem === item.output && styles.selectedText,
                 // NEW: Optional styling for PDA to make it stand out as tappable
-                item.type === 'pda' && { textDecorationLine: 'underline', fontWeight: 'bold', color: '#0f0' },
+                (item.type === 'pda' || item.type === 'txid') && { 
+                  textDecorationLine: 'underline', 
+                  fontWeight: 'bold', 
+                  color: '#0f0' 
+                },
               ]}
             >
               {item.output}
@@ -849,24 +856,35 @@ useEffect(() => {
         }));
         return;
       }
-      // CHANGED: Update history with the result, splitting into multiple items if PDA and joinPrompt are present (for 1-tap PDA copy)
+      // Update history with the result, handling different result types
       setHistory(prevHistory => {
         const filtered = prevHistory.filter(item => item.id !== 'loading');
-        if (result.pda && result.output && result.joinPrompt) {
-          return [
-            ...filtered,
-            { id: uniqueId(), output: result.output },
+        const newItems: HistoryItem[] = [];
+        
+        // Add the main output if it exists
+        if (result.output) {
+          newItems.push({ id: uniqueId(), output: result.output });
+        }
+        
+        // Add transaction ID as a separate copyable item if it exists
+        if (result.transactionId) {
+          newItems.push({ 
+            id: uniqueId(), 
+            output: result.transactionId, 
+            type: 'txid' // Use 'txid' type for transaction IDs
+          });
+        }
+        
+        // Add PDA and join prompt if they exist
+        if (result.pda && result.joinPrompt) {
+          newItems.push(
             { id: uniqueId(), output: 'PDA (share this to your friends):' },
             { id: uniqueId(), output: result.pda, type: 'pda' },
             { id: uniqueId(), output: result.joinPrompt }
-          ];
-        } else if (result.output) {
-          return [
-            ...filtered,
-            { id: uniqueId(), output: result.output }
-          ];
+          );
         }
-        return filtered;
+        
+        return [...filtered, ...newItems];
       });
       // Clear the command input
       setCommand('');
