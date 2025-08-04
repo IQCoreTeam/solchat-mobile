@@ -41,11 +41,17 @@ export function useIQWallet() {
       } satisfies SendOptions)
     }
 
-    // Handle VersionedTransaction (already constructed + signed externally)
-    const raw = tx.serialize()
-    return await connection.sendRawTransaction(raw, {
-      minContextSlot,
-    } satisfies SendOptions)
+    // Handle VersionedTransaction
+    if (tx instanceof VersionedTransaction) {
+      // Sign the transaction with the keypair
+      tx.sign([keypair])
+      const raw = tx.serialize()
+      return await connection.sendRawTransaction(raw, {
+        minContextSlot,
+      } satisfies SendOptions)
+    }
+
+    throw new Error('Unsupported transaction type')
   }
 
   return {
