@@ -48,7 +48,7 @@ export async function userInit() {
     const isPDAExist = await pdaCheck(PDA);
     
     if (isPDAExist) {
-        console.log(`PDA Exists: ${PDA}`);
+        //console.log(`PDA Exists: ${PDA}`);
         return PDA
     }
 
