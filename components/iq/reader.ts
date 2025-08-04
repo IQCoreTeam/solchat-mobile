@@ -9,9 +9,12 @@ import {
 import { config } from "./config";
 import { getChunk, isMerkleRoot } from "./utils";
 
-
 const network = config.rpc;
 const transactionSizeLimit = config.transactionSizeLimit;
+// Single global connection instance with 'finalized' commitment level
+const connection = new Connection(network, 'confirmed');
+const readConnection = new Connection(network, 'processed');
+
 
 async function bringOffset(dataTxid: string) {
     const txInfo = await getTransactionInfoOnServer(dataTxid);
@@ -26,7 +29,6 @@ export async function fetchDataSignatures(address: string, max = 100) {
 
     try {
         const DBPDA = new PublicKey(address);
-        const connection = new Connection(network, 'confirmed');
         const signaturesInfo = await connection.getSignaturesForAddress(DBPDA, {
             limit: max,
         });
@@ -118,8 +120,6 @@ export async function fetchLargeFileAndDoCache(txId: string): Promise<string> {
     return data.result;
 }
 export async function getChatRecords(pdaString: string, sizeLimit: number, onMessage: (msg: string) => void): Promise<void> {
-    const connection = new Connection(network, 'finalized');
-
     const chatPDA = new PublicKey(pdaString);
     try {
         console.log(`Using RPC: ${network}`);
@@ -151,7 +151,6 @@ export async function getChatRecords(pdaString: string, sizeLimit: number, onMes
 
 }
 export async function joinChat(pdaString: string, onMessage: (msg: string) => void): Promise<number> {
-    const connection = new Connection(network, 'finalized');
     const chatPDA = new PublicKey(pdaString);
     console.log(`Join chat on ${pdaString} ...`);
   
