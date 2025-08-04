@@ -1,7 +1,7 @@
 import { AppPage } from '@/components/app-page';
 import { AppText } from '@/components/app-text';
+import { useConnection } from '@/components/solana/solana-provider';
 import { useWalletUi } from '@/components/solana/use-wallet-ui';
-import { useConnection } from '@/components/solana/solana-provider'
 
 import { bonkAscii, solChat } from "@/assets/ascii";
 import IQ from '@/components/iq';
@@ -37,6 +37,7 @@ interface HistoryItem {
   type?: string;
   pda?: string;
   joinPrompt?: string;
+  timestamp?: number;
 }
 interface CommandResult {
   type?:string;
@@ -124,17 +125,16 @@ const handleJoinChatServer = async (
   try {
     // Determine how many historical messages are available
     const sigs = await IQ.fetchDataSignatures(connection,pda, 100);
+
     const totalMessages = sigs.length;
-    // Only load the last 4
     const messagesToLoad = 4;
     const startIdx = Math.max(0, totalMessages - messagesToLoad);
-    // Only show loading banner if there are messages to load
+
     const loadingBanner = totalMessages > 1
       ? `[Server] Loading last ${messagesToLoad} messages (${startIdx + 1}/${totalMessages})...`
       : `[Server] No messages in this server yet.`;
-    // Show loading banner first
     onNewMessage(loadingBanner);
-    // Fetch only the last 5 messages
+
     await IQ.getChatRecords(connection,pda, messagesToLoad, onNewMessage);
     const subscriptionId = await IQ.joinChat(connection,pda, onNewMessage);
     return { message: 'Joined server successfully. Listening for messages...', subscriptionId };
@@ -315,7 +315,7 @@ const processCommand = async (
       // If user doesn't want encryption, proceed without it
       return {
         output: 'Starting chat without encryption.\nType /pw <key> later to enable encryption.',
-        password: undefined
+        password: ''
       };
     }
   }
@@ -537,6 +537,7 @@ export default function TabSettingsScreen() {
   const [messagePw, setMessagePW] = useState<string>('');
   const messagePwRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSentTxid, setLastSentTxid] = useState<string | null>(null);
   // Load saved encryption key on mount
   useEffect(() => {
     const loadEncryptionKey = async () => {
@@ -643,7 +644,7 @@ export default function TabSettingsScreen() {
           decrypted = true;
         }
       } catch (e) {
-        console.error('Failed to decrypt message:', e);
+        console.log('Failed to decrypt message:', e);
       }
     }
     const newMessage = {
@@ -651,8 +652,27 @@ export default function TabSettingsScreen() {
       output: isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`,
       type: decrypted ? 'decrypted' : undefined
     };
-    setHistory(prev => [...prev, newMessage]);
-  };
+    const processedOutput = isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`;
+    const now = Date.now();
+    setHistory(prev => {
+        // ADDED: Check for exact match within the last 10 seconds
+        const duplicateWindowMs = 10000;  // 10 seconds; adjust as needed
+        const isDuplicate = prev.some(item => 
+            item.output === processedOutput && 
+            item.timestamp && 
+            (now - item.timestamp) < duplicateWindowMs
+        );
+        if (isDuplicate) {
+            return prev;  // Skip if recent duplicate
+        }
+        return [...prev, {
+            id: uniqueId(),
+            output: processedOutput,
+            type: decrypted ? 'decrypted' : undefined,
+            timestamp: now  // NEW: Add timestamp
+        }];
+    });
+};
 
 useEffect(() => {
   return () => {
@@ -740,37 +760,38 @@ useEffect(() => {
       if (result.serverMessageColor) {
         setMessageColor(result.serverMessageColor);
       }
-      if(result.password){
+      if(result.password !== undefined){
         // First set the password
         setMessagePW(result.password);
         // Create decrypted versions of existing messages and append them
         setHistory(prevHistory => {
-          const newEntries: HistoryItem[] = [];
-          // Keep all original messages
-          const updatedHistory = [...prevHistory];
-          // Find and add decrypted versions of encrypted messages
-          prevHistory.forEach(msg => {
-            if (msg.output && msg.output.includes(': ')) {
-              const [handle, encrypted] = msg.output.split(': ');
-              try {
-                const decrypted = decodeWithPassword(encrypted, result.password!);
-                // Only add if decryption was successful and different from original
-                if (decrypted !== encrypted) {
-                  newEntries.push({
-                    id: `${msg.id}-decrypted`,
-                    output: `[Decrypted] ${handle}: ${decrypted}`,
-                    type: 'decrypted'
-                  });
+            const newEntries: HistoryItem[] = [];
+            // Keep all original messages
+            const updatedHistory = [...prevHistory];
+            // Find and add decrypted versions of encrypted messages
+            prevHistory.forEach(msg => {
+                if (msg.output && msg.output.includes(': ')) {
+                    const [handle, encrypted] = msg.output.split(': ');
+                    try {
+                        const decrypted = decodeWithPassword(encrypted, result.password!);
+                        // Only add if decryption was successful and different from original
+                        const isValidText = (text: string) => /^[\x20-\x7E]*$/.test(text);  // Printable ASCII range (space to ~)
+                        if (decrypted !== encrypted && isValidText(decrypted)) {  // Only add if valid and changed
+                            newEntries.push({
+                                id: `${msg.id}-decrypted`,
+                                output: `[Decrypted] ${handle}: ${decrypted}`,
+                                type: 'decrypted'
+                            });
+                        }
+                    } catch (e) {
+                        // Skip if decryption fails
+                    }
                 }
-              } catch (e) {
-                // Skip if decryption fails
-              }
-            }
-          });
-          // Append all new decrypted messages
-          return [...updatedHistory, ...newEntries];
+            });
+            // Append all new decrypted messages
+            return [...updatedHistory, ...newEntries];
         });
-      }
+    }
       if(result.amount){
         setHistory(prev => [
           ...prev,
