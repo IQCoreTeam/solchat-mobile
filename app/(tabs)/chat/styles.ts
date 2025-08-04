@@ -61,7 +61,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, // Tighter padding to fill borders
     paddingVertical: 4,
     width: '100%', // Full width
-    marginBottom: 30, // Add margin to push the button up
+    marginTop: 20, // Add space above the input
+    marginBottom: 30, // Keep bottom margin for keyboard
+    marginHorizontal: 0,
   },
   promptText: {
     color: '#0f0',

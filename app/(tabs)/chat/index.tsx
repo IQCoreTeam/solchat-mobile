@@ -583,7 +583,9 @@ export default function TabSettingsScreen() {
           decrypted = true;
         }
       } catch (e) {
-        console.log('Unable to decrypt message:', e);
+        if (e instanceof Error && !e.message.includes('Invalid character')) {
+          console.log('Unable to decrypt message:', e);
+        }
       }
     }
     const newMessage = {
