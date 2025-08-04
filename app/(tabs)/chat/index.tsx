@@ -5,56 +5,23 @@ import { useWalletUi } from '@/components/solana/use-wallet-ui';
 
 import { bonkAscii, solChat } from "@/assets/ascii";
 import IQ from '@/components/iq';
+import { pdaCheck } from './helper';
+import { CommandResult, HistoryItem } from './interface';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
+import { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { decodeWithPassword, encodeWithPassword } from "hanlock";
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import styles from './styles';
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
-const NETWORK = clusterApiUrl('devnet'); // Adjust as needed
 const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
 const WELCOME_MENU = `[1] Create/Search my rooms \n[2] Enter friend's room`;
 const SELECT_MESSAGE=`\nType your selection:`
-const pdaCheck = async (connection: Connection,PDA: string) => {
 
-  try {
-    const PDAPubkey = new PublicKey(PDA);
 
-    return await connection.getAccountInfo(PDAPubkey);
-  } catch (error) {
-    console.error("PDA Check failed:", error);
-    return null;
-  }
-};
-// Interfaces for UI
-interface HistoryItem {
-  id: string;
-  input?: string;
-  output?: string;
-  type?: string;
-  pda?: string;
-  joinPrompt?: string;
-  timestamp?: number;
-}
-interface CommandResult {
-  type?:string;
-  output?: string;
-  clear?: boolean;
-  pda?: string;
-  joined?: boolean;
-  created?: boolean;
-  nickname?: string;
-  serverMessageColor?: string; // change server message color
-  password?:string;
-  amount?:string;
-  isLeavingChat?: boolean;
-  joinPrompt?: string; // NEW: Added for separate join prompt rendering
-  transactionId?: string; // NEW: Added for transaction ID copy functionality
-}
-// Simple test API call
 const handleChatServerAction = async (connection:Connection,serverId: string| null, pubkey: string | null): Promise<{
   message: string,
   pda?: string,
@@ -62,12 +29,6 @@ const handleChatServerAction = async (connection:Connection,serverId: string| nu
   joinPrompt?: string
 }> => {
   try {
-    // valid wallet
-    // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6
-    // valid pda
-    // BHcXCRmnPWNz31UUJEhe8W46seNrDH6ZysHyug5XNmCd
-    // working mainnet PDA - just enter 'test' when prompted for serverId
-    //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);
     IQ.userInit();
     const iqHost = "https://iq-testbackend-381334931214.asia-northeast3.run.app"
     const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);
@@ -78,16 +39,13 @@ const handleChatServerAction = async (connection:Connection,serverId: string| nu
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log('DEBUG: data:', data);
     if (data && data.PDA) {
       console.log(`Fetched PDA: ${data.PDA}`);
       try {
 
         const pdaCheckResult = await pdaCheck(connection,data.PDA);
-        console.log('DEBUG: pdaCheckResult:', pdaCheckResult);
         if (pdaCheckResult) {
           console.log('PDA found and validated');
-          // CHANGED: Return separate fields instead of concatenated message
           return {
             message: `Server found!`,
             pda: data.PDA,
@@ -115,6 +73,7 @@ const handleChatServerAction = async (connection:Connection,serverId: string| nu
     return { message: 'API Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')};
   }
 };
+
 // Handle joining a chat server
 const handleJoinChatServer = async (
     connection: Connection,
@@ -159,7 +118,6 @@ const handleCreateChatServer = async (connection:Connection,serverId: string, pu
       const txid = await IQ.appTxSend(tx, signAndSendTransaction);
       if (txid !== 'null') {
         console.log(`Server created. TX: ${txid}`);
-        // CHANGED: Return separate fields
         return { message: `Server created successfully.`, pda: PDA, joinPrompt: `Join server? [y/n]` };
       } else {
         return { message: 'Transaction send failed.' };
@@ -174,6 +132,7 @@ const handleCreateChatServer = async (connection:Connection,serverId: string, pu
 };
 // Helper to generate unique IDs for history items
 const uniqueId = () => `${Date.now()}-${Math.random().toString(36).substr(2,5)}`;
+
 // Command processing logic
 const processCommand = async (
     connection:Connection,
@@ -267,11 +226,9 @@ const processCommand = async (
   // handle ongoing phases first
   if (phase === 'waitingForServerId') {
     const actionOutput = await handleChatServerAction(connection,cmd, pubkey); // cmd is the serverId
-    // show error to user
     if (actionOutput.message.startsWith('Error:') || actionOutput.message.startsWith('API Error:')) {
       return { output: `${actionOutput.message}\nType your selection:` };
     }
-    // CHANGED: Propagate joinPrompt
     return { output: actionOutput.message, pda: actionOutput.pda, joinPrompt: actionOutput.joinPrompt };
   }
   if (phase === 'waitingForJoinResponse') {
@@ -304,35 +261,11 @@ const processCommand = async (
       nickname: cmd,
     };
   }
-  // Handle encryption setup after nickname is set
-  if (phase === 'waitingForEncryptionResponse') {
-    const response = cmd.toLowerCase().trim();
-    if (response === 'y') {
-      return {
-        output: 'Enter encryption key (any characters, case sensitive):',
-      };
-    } else {
-      // If user doesn't want encryption, proceed without it
-      return {
-        output: 'Starting chat without encryption.\nType /pw <key> later to enable encryption.',
-        password: ''
-      };
-    }
-  }
+
   if (phase === 'waitingForPdaInput'){
        return {
               output: 'Joining the server:'+cmd,
        };
-  }
-  // Handle encryption key input
-  if (phase === 'waitingForEncryptionKey') {
-    if (cmd.length === 0) {
-      return { output: 'Encryption key cannot be empty. Please enter a key:' };
-    }
-    return {
-      output: `Encryption enabled with key. Type /pw <key> to change encryption key\nType /leave to disconnect\nHappy Chatting!\n`,
-      password: cmd
-    };
   }
   switch (cmd) {
     case 'clear':
@@ -650,7 +583,7 @@ export default function TabSettingsScreen() {
           decrypted = true;
         }
       } catch (e) {
-        console.log('Failed to decrypt message:', e);
+        console.log('Unable to decrypt message:', e);
       }
     }
     const newMessage = {
@@ -851,14 +784,14 @@ useEffect(() => {
           const response = command.trim().toLowerCase();
           let newOutput = '';
           if (response === 'y') {
-            newOutput = 'Enter encryption key (any characters, case sensitive):';
+            newOutput = 'Enter hanlock encryption key (Korean, 3-10 characters):';
             // Move to encryption key input phase
             setConversationState(prev => ({
               ...prev,
               phase: 'waitingForEncryptionKey'
             }));
           } else {
-            newOutput = 'Starting chat without encryption.\nType /pw <key> later to enable encryption.';
+            newOutput = 'Starting chat without encryption.\n/pw <key> later to enable encryption.\n/leave to disconnect.\nHappy Chatting!';
             // Move to chat phase without encryption
             setConversationState(prev => ({
               ...prev,
@@ -887,7 +820,7 @@ useEffect(() => {
           const filtered = prev.filter(item => item.id !== 'loading');
           return [
             ...filtered,
-            { id: uniqueId(), output: `Encryption enabled with key. Starting chat...\nType /pw <key> to change encryption key.` },
+            { id: uniqueId(), output: `Encryption enabled with key.\n/pw <key> to change encryption key.\n/leave to disconnect.\nHappy Chatting!` },
           ];
         });
         setMessagePW(key);
@@ -963,35 +896,13 @@ useEffect(() => {
           return;
         }
       }
-      // If we just sent a message (indicated by [Sent] in the output)
-      // and we're in a chat, trigger an immediate message fetch
-//       if (result.output && result.output.includes('[Sent]') && conversationState.phase === 'inChat' && conversationState.currentPDA) {
-//         try {
-//           // Fetch the latest messages after a short delay to ensure the transaction is processed
-//             await IQ.getChatRecords(connection, conversationState.currentPDA!, 1, (msg) => {
-//               // Only process the message if it's not already in the history
-//               setHistory(prev => {
-//                 const messageExists = prev.some(item =>
-//                   item.output && item.output.includes(msg)
-//                 );
-//                 if (!messageExists) {
-//                   return [...prev, { id: uniqueId(), output: msg }];
-//                 }
-//                 return prev;
-//               });
-//             });
-//
-//         } catch (error) {
-//           console.error('Error fetching messages after send:', error);
-//         }
-//       }
       // update conversation state based on command
       const cmd = command.trim().toLowerCase();
       if (cmd === '1' && conversationState.phase === 'idle') {
         setConversationState(prev => ({ ...prev, phase: 'waitingForServerId', pendingPubkey: pubkey }));
       } else if (conversationState.phase === 'waitingForServerId') {
         // check if output contains the join prompt
-        if (result.output && result.joinPrompt) { // CHANGED: Check for joinPrompt instead of string includes
+        if (result.output && result.joinPrompt) { 
           setConversationState(prev => ({
             ...prev,
             phase: 'waitingForJoinResponse',
@@ -1036,7 +947,6 @@ useEffect(() => {
                 phase: 'waitingForJoinResponse',
                 currentPDA: createResult.pda
               }));
-              // CHANGED: Show the join prompt as split items
               setHistory(prev => [
                 ...prev.filter(item => item.id !== 'loading'),
                 { id: uniqueId(), output: createResult.message || 'Server created successfully!' },
@@ -1068,7 +978,6 @@ useEffect(() => {
         const pda = command.trim();
         const { message: joinOutput, subscriptionId } = await handleJoinChatServerWrapper(connection,pda, onNewMessage);
         subscriptionRef.current = subscriptionId;
-        // UI display
         setHistory(prev => [
           ...prev,
           { id: uniqueId(), output: joinOutput },
