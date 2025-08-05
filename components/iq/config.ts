@@ -1,7 +1,7 @@
 import { getAppKeypair } from '@/components/account/app-keypair-manager';
 import { clusterApiUrl, Keypair, Transaction, VersionedTransaction } from '@solana/web3.js';
-import { IQ_BACKEND_HOST } from '@env';
 
+const IQ_BACKEND_HOST = process.env.IQ_BACKEND_HOST;
 console.log('IQ_BACKEND_HOST:', IQ_BACKEND_HOST);
 
 export const config = {

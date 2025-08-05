@@ -42,6 +42,7 @@
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "expo": "~53.0.16",
+    "expo-av": "~15.1.7",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
     "expo-crypto": "^14.1.5",
@@ -63,7 +64,6 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
-    "react-native-dotenv": "^3.4.11",
     "react-native-encrypted-storage": "^4.0.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
@@ -74,8 +74,7 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "react-qr-code": "^2.0.16",
-    "tweetnacl": "^1.0.3",
-    "expo-av": "~15.1.7"
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
