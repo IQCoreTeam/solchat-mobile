@@ -1,52 +1,76 @@
-import { createContext, type PropsWithChildren, use, useMemo } from 'react'
-import { useMobileWallet } from '@/components/solana/use-mobile-wallet'
-import { AppConfig } from '@/constants/app-config'
-import { Account, useAuthorization } from '@/components/solana/use-authorization'
-import { useMutation } from '@tanstack/react-query'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  PropsWithChildren,
+} from 'react'
+import {
+  getAppKeypair,
+  setAppWallet,
+} from '@/components/account/app-keypair-manager'
+import EncryptedStorage from 'react-native-encrypted-storage'
+import { PublicKey } from '@solana/web3.js'
 
 export interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
-  signIn: () => Promise<Account>
+  publicKey: PublicKey | null
+  signIn: () => Promise<PublicKey>
   signOut: () => Promise<void>
 }
 
-const Context = createContext<AuthState>({} as AuthState)
+const AuthContext = createContext<AuthState | null>(null)
 
 export function useAuth() {
-  const value = use(Context)
-  if (!value) {
-    throw new Error('useAuth must be wrapped in a <AuthProvider />')
+  const ctx = useContext(AuthContext)
+  if (!ctx) {
+    throw new Error('useAuth must be used inside <AuthProvider>')
   }
-
-  return value
+  return ctx
 }
 
-function useSignInMutation() {
-  const { signIn } = useMobileWallet()
-
-  return useMutation({
-    mutationFn: async () =>
-      await signIn({
-        uri: AppConfig.uri,
-      }),
-  })
+const deleteAppWallet = async () => {
+  await EncryptedStorage.removeItem('app_wallet_secret_key')
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const { disconnect } = useMobileWallet()
-  const { accounts, isLoading } = useAuthorization()
-  const signInMutation = useSignInMutation()
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasWallet, setHasWallet] = useState(false)
+  const [publicKey, setPublicKey] = useState<PublicKey | null>(null)
 
-  const value: AuthState = useMemo(
-    () => ({
-      signIn: async () => await signInMutation.mutateAsync(),
-      signOut: async () => await disconnect(),
-      isAuthenticated: (accounts?.length ?? 0) > 0,
-      isLoading: signInMutation.isPending || isLoading,
-    }),
-    [accounts, disconnect, signInMutation, isLoading],
-  )
+  useEffect(() => {
+    (async () => {
+      const wallet = await getAppKeypair()
+      if (wallet) {
+        setHasWallet(true)
+        setPublicKey(wallet.publicKey)
+      }
+      setIsLoading(false)
+    })()
+  }, [])
 
-  return <Context value={value}>{children}</Context>
+  const value: AuthState = useMemo(() => ({
+    isAuthenticated: hasWallet,
+    isLoading,
+    publicKey,
+    signIn: async () => {
+      const existing = await getAppKeypair()
+      if (!existing) {
+        await setAppWallet()
+      }
+      const keypair = await getAppKeypair()
+      setHasWallet(true)
+      setPublicKey(keypair!.publicKey)
+      return keypair!.publicKey
+    },
+    signOut: async () => {
+      await deleteAppWallet()
+      setHasWallet(false)
+      setPublicKey(null)
+    },
+  }), [hasWallet, isLoading, publicKey])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

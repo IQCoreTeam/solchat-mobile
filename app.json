@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "solchat-mobile",
+    "name": "SolChat",
     "slug": "solchat-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/solface.jpg",
     "scheme": "templateexpobasic",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,27 +14,27 @@
     "android": {
       "package": "com.iqlabs.solchatmobile",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/solface.jpg",
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#000000",
           "dark": {
             "backgroundColor": "#000000",
-            "image": "./assets/images/splash-icon.png"
+            "image": "./assets/images/mainlogo.png"
           },
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/mainlogo.png",
           "imageWidth": 200,
           "resizeMode": "contain"
         }

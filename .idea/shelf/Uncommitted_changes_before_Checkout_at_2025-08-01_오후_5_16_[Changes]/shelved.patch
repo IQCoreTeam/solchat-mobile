@@ -1,0 +1,205 @@
+Index: app/(tabs)/chat/index.tsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import { AppPage } from '@/components/app-page';\r\nimport { AppText } from '@/components/app-text';\r\nimport { useWalletUi } from '@/components/solana/use-wallet-ui';\r\n\r\nimport IQ from '@/components/iq';\r\nimport { MaterialCommunityIcons } from '@expo/vector-icons';\r\nimport Clipboard from '@react-native-clipboard/clipboard';\r\nimport { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';\r\nimport React, { useEffect, useRef, useState } from 'react';\r\nimport { FlatList, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from 'react-native';\r\nimport styles from './styles';\r\n\r\n// Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)\r\nconst NETWORK = clusterApiUrl('devnet');  // Adjust as needed\r\nconst WELCOME_MESSAGE = `Welcome to Solchat!\\n[1] Create or search chat server\\n[2] Enter chat room\\nType your selection:`;\r\n\r\nconst pdaCheck = async (PDA: string) => {\r\n  try {\r\n    const PDAPubkey = new PublicKey(PDA);\r\n    const connection = new Connection(NETWORK);\r\n\r\n    return await connection.getAccountInfo(PDAPubkey);\r\n  } catch (error) {\r\n    console.error(\"PDA Check failed:\", error);\r\n    return null;  // Or throw error, depending on your needs\r\n  }\r\n};\r\n\r\n// TypeScript interface for history items\r\ninterface HistoryItem {\r\n  id: string;\r\n  input?: string;\r\n  output?: string;\r\n}\r\n\r\ninterface CommandResult {\r\n  output?: string;\r\n  clear?: boolean;\r\n  pda?: string;\r\n  joined?: boolean;\r\n  created?: boolean;\r\n  nickname?: string;\r\n  color?: string; // change server message color\r\n}\r\n\r\n// Simple test API call\r\nconst handleChatServerAction = async (serverId: string| null, pubkey: string | null): Promise<{ message: string, pda?: string }> => {\r\n  try {\r\n    // valid wallet\r\n    // A1BK8kJqG2o1uScbLjApMXBNzWGjoNjtpjaCkGQkdkY6\r\n    // valid pda\r\n    // BHcXCRmnPWNz31UUJEhe8W46seNrDH6ZysHyug5XNmCd\r\n    console.log(`DEBUG: in handleChatServerAction`)\r\n    console.log(`DEBUG: serverId : ${serverId}`)\r\n    console.log(`DEBUG: pubkey : ${pubkey}`)\r\n\r\n    IQ.userInit();\r\n    //const pubkeyFromSdk = await IQ.getMyPublicKey();\r\n    //await IQ.userInit();\r\n    //await IQ.codeIn(\"Hello World\", \"app-test\", \"example-handle\");\r\n    //console.log(`DEBUG: pubkeyFromSdk : ${pubkeyFromSdk}`)\r\n    const iqHost = \"https://iq-testbackend-381334931214.asia-northeast3.run.app\"\r\n\r\n    // working mainnet PDA - just enter 'test' when prompted for serverId\r\n    //const response = await fetch(`${iqHost}/get-server-pda/AbSAnMiSJXv6LLNzs7NMMaJjmexttg5NpQbCfXvGwq1F/${serverId}`);\r\n    \r\n    console.log(`DEBUG: fetching ${iqHost}/get-server-pda/${pubkey}/${serverId}`);\r\n\r\n    const response = await fetch(`${iqHost}/get-server-pda/${pubkey}/${serverId}`);\r\n\r\n    console.log(`DEBUG: response body : ${response.body}`)\r\n    console.log(`DEBUG: response status : ${response.status}`)\r\n    \r\n    console.log(`DEBUG: response : ${response}`)\r\n    if (!response.ok) {\r\n      if (response.status === 500) {\r\n        return { message: 'Error: PDA not found'};\r\n      }\r\n      throw new Error(`HTTP error! status: ${response.status}`);\r\n    }\r\n    \r\n    const data = await response.json();\r\n    console.log(`DEBUG: data : ${data}`)\r\n    if (data && data.PDA) {\r\n      console.log(`Fetched PDA: ${data.PDA}`);\r\n      const pdaCheckResult = await pdaCheck(data.PDA);\r\n      console.log(`DEBUG: pdaCheckResult : ${pdaCheckResult}`)\r\n      if (pdaCheckResult) {\r\n        console.log(`PDA found: ${pdaCheckResult}`);\r\n        return { message: `Server exists.\\nPDA: ${data.PDA}\\n\\nJoin server? [y/n]`, pda: data.PDA }        //return `Server exists.\\nPDA: ${data.PDA}\\n\\nJoin server? [y/n]`;\r\n      }\r\n      else {\r\n        console.log(`PDA not found. Prompting user to create a new server`);  \r\n        return { message: 'PDA not found. Would you like to create a new server? [y/n]'};\r\n      }\r\n    } else {\r\n      return { message: 'Error: could not find PDA from backend service'};\r\n    }\r\n  } catch (error) {\r\n    console.error('API call failed:', error);\r\n    return { message: 'API Error: ' + (error instanceof Error ? error.message : 'Unknown error occurred')};\r\n  }\r\n};\r\n\r\n// Handle joining a chat server\r\nconst handleJoinChatServer = async (\r\n  pda: string,\r\n  onNewMessage: (msg: string) => void\r\n): Promise<{ message: string; subscriptionId: number | null }> => {\r\n  console.log(`DEBUG: joining server with PDA: ${pda}`);\r\n  try {\r\n    // Assuming IQ.joinChat sets up the listener and returns the subscription ID\r\n    await IQ.getChatRecords(pda, 50, onNewMessage);  // Load past 50 messages\r\n    const subscriptionId = await IQ.joinChat(pda, onNewMessage);\r\n    return { message: 'Joined server successfully. Listening for messages...', subscriptionId };\r\n  } catch (error) {\r\n    console.error('Failed to join chat:', error);\r\n    return { message: 'Error joining server.', subscriptionId: null };\r\n  }\r\n};\r\n\r\nconst handleCreateChatServer = async (serverId: string, pubkey: string | null, signAndSendTransaction: (tx: Transaction | VersionedTransaction, minContextSlot?: number) => Promise<string>): Promise<{ message: string, pda?: string }> => {  try {\r\n    if (!pubkey) throw new Error('No pubkey available');\r\n    const userKeyString = pubkey;\r\n    const PDA = await IQ.getServerPDA(userKeyString, serverId);\r\n    const isPDAExist = await pdaCheck(PDA);\r\n    if (isPDAExist) {\r\n      return { message: `Server already exists.\\nPDA: ${PDA}\\n\\nJoin server? [y/n]`, pda: PDA };\r\n    }\r\n    const transactionData = await IQ.createServerInitTransactionOnServer(userKeyString, 'group_chat', serverId, 'public');\r\n    if (transactionData) {\r\n      const tx = await IQ._translate_transaction(transactionData);\r\n      const txid = await IQ.appTxSend(tx, signAndSendTransaction);\r\n      if (txid !== 'null') {\r\n        console.log(`Server created. TX: ${txid}`);\r\n        return { message: `Server created successfully.\\nPDA: ${PDA}\\n\\nJoin server? [y/n]`, pda: PDA };\r\n      } else {\r\n        return { message: 'Transaction send failed.' };\r\n      }\r\n    } else {\r\n      return { message: 'Transaction build failed.' };\r\n    }\r\n  } catch (error) {\r\n    console.error('Create server failed:', error);\r\n    return { message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` };\r\n  }\r\n};\r\n\r\nconst appTxSend = async (tx: Transaction, signTransaction: (tx: Transaction) => Promise<Transaction>): Promise<string> => {\r\n  try {\r\n    const connection = new Connection(NETWORK, 'confirmed');  // Use your app's NETWORK (devnet)\r\n    let blockHash = await connection.getLatestBlockhash();\r\n    while (!blockHash) {  // Retry if undefined\r\n      blockHash = await connection.getLatestBlockhash();\r\n    }\r\n    tx.recentBlockhash = blockHash.blockhash;\r\n    tx.lastValidBlockHeight = blockHash.lastValidBlockHeight;\r\n    // feePayer should be set in the tx from backend (user's pubkey)\r\n    const signedTx = await signTransaction(tx);  // Wallet signs\r\n    const txid = await connection.sendTransaction(signedTx, [], { skipPreflight: true });  // Empty signers array, options third\r\n    await connection.confirmTransaction({\r\n      signature: txid,\r\n      blockhash: blockHash.blockhash,  // Add this\r\n      lastValidBlockHeight: blockHash.lastValidBlockHeight,\r\n    });\r\n    return txid;\r\n  } catch (error) {\r\n    console.error('Transaction send failed:', error);\r\n    return 'null';\r\n  }\r\n};\r\n\r\n// Helper to generate unique IDs for history items\r\nconst uniqueId = () => `${Date.now()}-${Math.random().toString(36).substr(2,5)}`;\r\n\r\n// Command processing logic\r\nconst processCommand = async (\r\n  command: string, \r\n  pubkey: string | null, \r\n  phase: string, \r\n  currentPDA?: string | null,\r\n  nickname?: string | null      // ← allow null/undefined\r\n): Promise<CommandResult> => {  \r\n  \r\n  const cmd = command.trim().toLowerCase();\r\n\r\n  if (cmd === '') return {};\r\n  if (phase === 'inChat') {\r\n    // handle slash commands\r\n    if (cmd.startsWith('/color ')) {\r\n      const colorArg = cmd.split(' ')[1];\r\n      let hex = '#1e90ff';\r\n      switch (colorArg) {\r\n        case 'blue':\r\n          hex = '#1e90ff';\r\n          break;\r\n        case 'red':\r\n          hex = '#ff4500';\r\n          break;\r\n        case 'green':\r\n          hex = '#32cd32';\r\n          break;\r\n        default:\r\n          return { output: 'Supported colors: blue, red, green' };\r\n      }\r\n      return { output: `Message color changed to ${colorArg}.`, color: hex };\r\n    }\r\n    if (cmd === 'exit' || cmd === '/leave') {\r\n      return { output: 'Leaving chat...', clear: true };\r\n    }\r\n    const success = await IQ.sendChat(\r\n      currentPDA!,\r\n      command,\r\n      nickname ?? 'anonymous'\r\n    );\r\n\r\n    if (success) {\r\n      return { output: `[Sent] ${success}` };\r\n    }\r\n    else {\r\n      return { output: 'Error sending message.' };\r\n    }\r\n  }\r\n  // Handle ongoing phases first\r\n  if (phase === 'waitingForServerId') {\r\n  // Use this input as serverId and complete the action\r\n  const actionOutput = await handleChatServerAction(cmd, pubkey);  // cmd is the serverId\r\n  if (actionOutput.message.startsWith('Error:') || actionOutput.message.startsWith('API Error:')) {\r\n    // Append prompt after error\r\n    return { output: `${actionOutput.message}\\nType your selection:` };\r\n  }\r\n  return { output: actionOutput.message, pda: actionOutput.pda };\r\n} \r\n\r\n  if (phase === 'waitingForJoinResponse') {\r\n    if (cmd === 'y' || cmd === 'yes') {\r\n      if (!currentPDA) {\r\n        return { output: 'Error: No PDA available for joining.' };\r\n      }\r\n       return { output: '[*] Preparing to join...', joined: true };\r\n    } else if (cmd === 'n' || cmd === 'no') {\r\n      return { \r\n        output: [WELCOME_MESSAGE].join('\\n')\r\n      };\r\n    } else {\r\n      return { output: 'Please enter y or n:' };\r\n    }\r\n  } \r\n  if (phase === 'waitingForCreateResponse') {\r\n    if (cmd === 'y' || cmd === 'yes') {\r\n      return { output: '[*] Preparing to create server...', created: true };  // Flag to trigger in component\r\n    } else if (cmd === 'n' || cmd === 'no') {\r\n      return { output: WELCOME_MESSAGE };\r\n    } else {\r\n      return { output: 'Please enter y or n:' };\r\n    }\r\n  }\r\n  if (phase === 'waitingForHandle') {\r\n    if (cmd.length === 0) return { output: 'Nickname cannot be empty:' };\r\n    return {\r\n      output: `Nickname set to ${cmd}. Start chatting!`,\r\n      nickname: cmd,\r\n    };  // custom field we’ll use below\r\n  }\r\n\r\n  switch (cmd) {\r\n    case 'clear':\r\n      return { clear: true };\r\n    case 'help':\r\n      return {\r\n        output: [\r\n          'Available commands:',\r\n          '1 - Create or search chat server',\r\n          '2 - Enter chat room',\r\n          'clear - Clear screen',\r\n          'help - Show this message',\r\n        ].join('\\n'),\r\n      };\r\n    case '1':\r\n      return { output: 'Enter Server ID:' };  \r\n\r\n    case '2':\r\n      return { output: 'Enter PDA:' };\r\n      //TODO: make the error message when user do any on-chain action without the gas fee.\r\n    default:\r\n      if (cmd.startsWith('echo ')) {\r\n        return { output: cmd.slice(5) };\r\n      }\r\n      return { output: `Command not found: ${command}` };\r\n  }\r\n};\r\n\r\n\r\n// Component to render command history\r\nconst CommandHistory: React.FC<{\r\n  history: HistoryItem[];\r\n  flatListRef: React.RefObject<FlatList<HistoryItem> | null>;\r\n  messageColor: string;\r\n}> = ({ history, flatListRef, messageColor }) => {\r\n  // Copy all history (inputs and outputs) to clipboard\r\n  const handleCopyAll = () => {\r\n    const text = history\r\n      .map(item => [item.input, item.output].filter(Boolean).join('\\n'))\r\n      .filter(Boolean)\r\n      .join('\\n');\r\n    Clipboard.setString(text);\r\n  };\r\n\r\n  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (\r\n    <View>\r\n      {item.input && <AppText style={styles.inputText}>{item.input}</AppText>}\r\n      {item.output && (\r\n          <AppText style={item.output.startsWith('[Message]') ? [styles.messageText, {color: messageColor}] : styles.outputText}>\r\n            {item.output}\r\n          </AppText>\r\n        )}\r\n    </View>\r\n  );\r\n\r\n  return (\r\n    <>\r\n      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>\r\n        <TouchableOpacity onPress={handleCopyAll}>\r\n          <MaterialCommunityIcons name=\"content-copy\" size={22} color=\"#888\" />\r\n        </TouchableOpacity>\r\n      </View>\r\n      <FlatList\r\n        ref={flatListRef}\r\n        data={history}\r\n        renderItem={renderHistoryItem}\r\n        keyExtractor={(item) => item.id}\r\n        style={styles.history}\r\n        contentContainerStyle={styles.historyContent}\r\n      />\r\n    </>\r\n  );\r\n};\r\n\r\n// Component to render command input\r\nconst CommandInput: React.FC<{\r\n  command: string;\r\n  setCommand: (text: string) => void;\r\n  onSubmit: () => void;\r\n  phase: string;\r\n}> = ({ command, setCommand, onSubmit, phase}) => (\r\n  <View style={styles.inputContainer}>\r\n    <AppText style={styles.prompt}>$ </AppText>\r\n    <TextInput\r\n      style={styles.input}\r\n      value={command}\r\n      onChangeText={setCommand}\r\n      onSubmitEditing={onSubmit}\r\n      placeholder={phase === 'waitingForServerId' ? 'Server ID:' : phase === 'inChat' ? 'Type message...' : 'Enter command...'}      placeholderTextColor=\"#888\"\r\n      autoCapitalize=\"none\"\r\n      autoCorrect={false}\r\n      returnKeyType=\"send\"\r\n    />\r\n  </View>\r\n);\r\n\r\n// Main component\r\nexport default function TabSettingsScreen() {\r\n  const [conversationState, setConversationState] = useState<{\r\n    phase: 'idle' | 'waitingForServerId' | 'waitingForJoinResponse' | 'inChat' | 'waitingForCreateResponse' | 'waitingForHandle'| 'waitingForPdaInput';\r\n    pendingPubkey?: string | null;\r\n    currentPDA?: string | null;\r\n    currentServerId?: string;\r\n    nickname?: string | null;\r\n  }>({\r\n    phase: 'idle',\r\n  });\r\n  const subscriptionRef = useRef<number | null>(null);\r\n  const [command, setCommand] = useState<string>('');\r\n  const { publicKey, signAndSendTransaction } = useWalletUi();\r\n  const [pubkey, setPubkey] = useState<string | null>(null);\r\n  useEffect(() => {\r\n    setPubkey(publicKey?.toBase58() ?? null);\r\n  },  [publicKey]);\r\n\r\n  const [messageColor, setMessageColor] = useState<string>('#1e90ff');\r\n\r\n  const [history, setHistory] = useState<HistoryItem[]>([\r\n    { id: 'welcome', output: WELCOME_MESSAGE }\r\n  ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);\r\n\r\n  const onNewMessage = (msg: string) => {\r\n    setHistory(prev => [\r\n      ...prev,\r\n      { id: uniqueId(), output: `[Message] ${msg}` }\r\n    ]);\r\n    setTimeout(() => {\r\n      flatListRef.current?.scrollToEnd({ animated: true });\r\n    }, 100);\r\n  };\r\n  useEffect(() => {\r\n    return () => {\r\n      if (subscriptionRef.current !== null) {\r\n        const connection = new Connection(clusterApiUrl('devnet'), 'finalized');  // Match IQ's network\r\n        connection.removeOnLogsListener(subscriptionRef.current);\r\n        subscriptionRef.current = null;\r\n      }\r\n    };\r\n  }, []);\r\n\r\n  const handleCommandSubmit = async () => {\r\n    if (command.trim() === '') return;\r\n\r\n    const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };\r\n    // Add the command to history immediately\r\n    setHistory(prevHistory => [...prevHistory, newEntry, { id: 'loading', output: 'Loading...' }]);\r\n    \r\n    try {\r\n      const result = await processCommand(command, \r\n                                          pubkey, \r\n                                          conversationState.phase,\r\n                                          conversationState.currentPDA,\r\n                                          conversationState.nickname);      \r\n      if (result.clear) {\r\n        // Unsubscribe from any active chat log listener\r\n        if (subscriptionRef.current !== null) {\r\n          const connection = new Connection(clusterApiUrl('devnet'), 'finalized');\r\n          connection.removeOnLogsListener(subscriptionRef.current);\r\n          subscriptionRef.current = null;\r\n        }\r\n        setHistory([{ id: uniqueId(), output: WELCOME_MESSAGE }]);\r\n        setMessageColor('#1e90ff');\r\n        setCommand('');\r\n        setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));\r\n        return;\r\n      }\r\n\r\n      if (result.color) {\r\n         setMessageColor(result.color);\r\n       }\r\n\r\n       if (result.nickname) {\r\n        // Remove loading entry and add nickname confirmation\r\n        setHistory(prev => {\r\n          const filtered = prev.filter(item => item.id !== 'loading');\r\n          return [\r\n            ...filtered,\r\n            { id: uniqueId(), output: result.output ?? `Nickname set to ${result.nickname}. Start chatting!` },\r\n          ];\r\n        });\r\n        setCommand('');\r\n        setConversationState(prev => ({\r\n          ...prev,\r\n          phase: 'inChat',\r\n          nickname: result.nickname,\r\n        }));\r\n        return;\r\n      }\r\n\r\n      setHistory(prevHistory => {\r\n        // Remove any loading message before adding the result\r\n        const filtered = prevHistory.filter(item => item.id !== 'loading');\r\n        return [\r\n          ...filtered,\r\n          { id: uniqueId(), output: result.output }\r\n        ];\r\n      });\r\n      setCommand('');\r\n\r\n      // Update conversation state based on command\r\n      const cmd = command.trim().toLowerCase();\r\n\r\n      if (cmd === '1' && conversationState.phase === 'idle') {\r\n        setConversationState(prev => ({ ...prev, phase: 'waitingForServerId', pendingPubkey: pubkey }));\r\n      } else if (conversationState.phase === 'waitingForServerId') {\r\n        // Check if the output contains the join prompt\r\n        if (result.output && result.output.includes('Join server? [y/n]')) {\r\n          setConversationState(prev => ({ \r\n                       ...prev, \r\n                     phase: 'waitingForJoinResponse', \r\n                     pendingPubkey: pubkey,\r\n                     currentPDA: result.pda || prev.currentPDA  // Use result.pda if available\r\n          }));        \r\n        } else if (result.output && result.output.includes('create a new server? [y/n]')) {\r\n          setConversationState(prev => ({ \r\n            ...prev, \r\n            phase: 'waitingForCreateResponse', \r\n            currentServerId: command.trim(),\r\n          }));        \r\n        } else {\r\n          setConversationState(prev => ({ ...prev, phase: 'idle' }));\r\n        }\r\n      } else if (conversationState.phase === 'waitingForJoinResponse') {\r\n        if (!result.joined) {\r\n          setConversationState(prev => ({ ...prev, phase: 'idle' }));\r\n        }\r\n      }  \r\n    if (cmd === '2' && conversationState.phase === 'idle') {\r\n      // Enter chat room\r\n      setConversationState(prev => ({ ...prev, phase: 'waitingForPdaInput' }));\r\n    }else if (conversationState.phase === 'waitingForPdaInput') {\r\n       const pda = command.trim();\r\n\r\n       const { message: joinOutput, subscriptionId } = await handleJoinChatServer(pda, onNewMessage);\r\n       subscriptionRef.current = subscriptionId;\r\n\r\n       // UI display\r\n       setHistory(prev => [\r\n         ...prev,\r\n         { id: uniqueId(), output: joinOutput },\r\n         { id: uniqueId(), output: 'Choose a nickname:' }\r\n       ]);\r\n\r\n       setConversationState(prev => ({ ...prev, phase: 'waitingForHandle', currentPDA: pda }));\r\n        return;\r\n     }\r\n\r\n     if (result.joined && conversationState.currentPDA) {\r\n         const { message: joinOutput, subscriptionId } = await handleJoinChatServer(conversationState.currentPDA, onNewMessage);\r\n         subscriptionRef.current = subscriptionId;\r\n         setHistory(prev => {\r\n           const lastItem = prev[prev.length - 1];\r\n           if (lastItem.output === 'Preparing to join...') {\r\n             // Replace dummy output\r\n             return [...prev.slice(0, -1), { ...lastItem, output: joinOutput, id: uniqueId() }];\r\n           }\r\n           return [...prev, { id: uniqueId(), output: joinOutput }];\r\n         });\r\n         setHistory(prev => [\r\n          ...prev,\r\n          { id: uniqueId(), output: 'Choose a nickname:' },\r\n        ]);\r\n        setConversationState(prev => ({ ...prev, phase: 'waitingForHandle' }));\r\n        return; \r\n         //setConversationState(prev => ({ ...prev, phase: 'inChat' }));\r\n       }\r\n\r\n       if (result.created && conversationState.currentServerId && pubkey) {\r\n        const createResult = await handleCreateChatServer(conversationState.currentServerId, pubkey, signAndSendTransaction);\r\n        setHistory(prev => {\r\n          const lastItem = prev[prev.length - 1];\r\n          if (lastItem.output === 'Preparing to create server...') {\r\n            return [...prev.slice(0, -1), { ...lastItem, output: createResult.message }];\r\n          }\r\n          return [...prev, { id: uniqueId(), output: createResult.message }];\r\n        });\r\n        if (createResult.pda) {\r\n          setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse', currentPDA: createResult.pda }));\r\n        } else {\r\n          setConversationState(prev => ({ ...prev, phase: 'idle' }));\r\n        }\r\n      }\r\n\r\n\r\n      // Scroll to bottom after state updates\r\n      setTimeout(() => {\r\n        flatListRef.current?.scrollToEnd({ animated: true });\r\n      }, 100);\r\n    } catch (error) {\r\n      console.error('Error processing command:', error);\r\n      setHistory(prevHistory => {\r\n        // Remove any loading message before adding the error\r\n        const filtered = prevHistory.filter(item => item.id !== 'loading');\r\n        return [\r\n          ...filtered,\r\n          { \r\n            id: uniqueId(), \r\n            output: `Error: ${error instanceof Error ? error.message : 'Failed to process command'}` \r\n          }\r\n        ];\r\n      });\r\n      setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));\r\n    }\r\n  };\r\n\r\n  return (\r\n    <AppPage>\r\n      <KeyboardAvoidingView\r\n        style={styles.container}\r\n        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}\r\n        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}\r\n      >\r\n        <CommandHistory history={history} flatListRef={flatListRef} messageColor={messageColor} />\r\n        <CommandInput\r\n          command={command}\r\n          setCommand={setCommand}\r\n          onSubmit={handleCommandSubmit}\r\n          phase={conversationState.phase}\r\n        />\r\n      </KeyboardAvoidingView>\r\n    </AppPage>\r\n  );\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/(tabs)/chat/index.tsx b/app/(tabs)/chat/index.tsx
+--- a/app/(tabs)/chat/index.tsx	(revision aaf617063dd5ef70905de3afcc4594ab1affd3d3)
++++ b/app/(tabs)/chat/index.tsx	(date 1754035268441)
+@@ -3,6 +3,7 @@
+ import { useWalletUi } from '@/components/solana/use-wallet-ui';
+ 
+ import IQ from '@/components/iq';
++import {  encodeWithPassword,decodeWithPassword } from "hanlock";
+ import { MaterialCommunityIcons } from '@expo/vector-icons';
+ import Clipboard from '@react-native-clipboard/clipboard';
+ import { Connection, PublicKey, Transaction, VersionedTransaction, clusterApiUrl } from '@solana/web3.js';
+@@ -179,7 +180,8 @@
+   pubkey: string | null, 
+   phase: string, 
+   currentPDA?: string | null,
+-  nickname?: string | null      // ← allow null/undefined
++  nickname?: string | null ,
++  messagePw?: string | null
+ ): Promise<CommandResult> => {  
+   
+   const cmd = command.trim().toLowerCase();
+@@ -205,14 +207,25 @@
+       }
+       return { output: `Message color changed to ${colorArg}.`, color: hex };
+     }
++   if(cmd.startsWith('/pw ')){
++       const pwArg = cmd.replace(/^\/pw\s+/, '').trim();
++       return { output: `Decode key Set to to ${pwArg}.`, password: pwArg };
++   }
++
+     if (cmd === 'exit' || cmd === '/leave') {
+       return { output: 'Leaving chat...', clear: true };
++
+     }
+-    const success = await IQ.sendChat(
+-      currentPDA!,
+-      command,
+-      nickname ?? 'anonymous'
+-    );
++
++    if (messagePw){
++        command = encodeWithPassword(command,messagePw);
++    }
++
++  const success = await IQ.sendChat(
++              currentPDA!,
++              command,
++              nickname ?? 'anonymous'
++         );
+ 
+     if (success) {
+       return { output: `[Sent] ${success}` };
+@@ -378,12 +391,23 @@
+   },  [publicKey]);
+ 
+   const [messageColor, setMessageColor] = useState<string>('#1e90ff');
++const [messagePw, setMessagePW] = useState<string>(null);
++const messagePwRef = useRef<string | null>(null);
+ 
++useEffect(() => {
++  messagePwRef.current = messagePw;
++}, [messagePw]);
+   const [history, setHistory] = useState<HistoryItem[]>([
+     { id: 'welcome', output: WELCOME_MESSAGE }
+   ]);  const flatListRef = useRef<FlatList<HistoryItem>>(null);
+ 
+   const onNewMessage = (msg: string) => {
++    if (messagePwRef.current && msg.includes(': ')) {
++         const [handle, encrypted] = msg.split(': ');
++         const decrypted = decodeWithPassword(encrypted, messagePwRef.current);
++         msg = `${handle}: ${decrypted}`;
++       }
++
+     setHistory(prev => [
+       ...prev,
+       { id: uniqueId(), output: `[Message] ${msg}` }
+@@ -414,7 +438,9 @@
+                                           pubkey, 
+                                           conversationState.phase,
+                                           conversationState.currentPDA,
+-                                          conversationState.nickname);      
++                                          conversationState.nickname,
++                                          messagePw
++                                          );
+       if (result.clear) {
+         // Unsubscribe from any active chat log listener
+         if (subscriptionRef.current !== null) {
+@@ -425,6 +451,7 @@
+         setHistory([{ id: uniqueId(), output: WELCOME_MESSAGE }]);
+         setMessageColor('#1e90ff');
+         setCommand('');
++        setMessagePW(null)
+         setConversationState(prev => ({ ...prev, phase: 'idle', currentPDA: null }));
+         return;
+       }
+@@ -432,6 +459,9 @@
+       if (result.color) {
+          setMessageColor(result.color);
+        }
++      if(result.password){
++          setMessagePW(result.password);
++      }
+ 
+        if (result.nickname) {
+         // Remove loading entry and add nickname confirmation
+Index: package.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{\r\n  \"name\": \"solchat-mobile\",\r\n  \"scripts\": {\r\n    \"android\": \"expo run:android\",\r\n    \"android:build\": \"expo prebuild -p android\",\r\n    \"build\": \"tsc --noEmit && npm run android:build\",\r\n    \"ci\": \"tsc --noEmit && npm run lint:check && npm run fmt:check && npm run android:build\",\r\n    \"dev\": \"expo start\",\r\n    \"fmt\": \"prettier --write .\",\r\n    \"fmt:check\": \"prettier --check .\",\r\n    \"ios\": \"expo run:ios\",\r\n    \"lint\": \"expo lint --fix\",\r\n    \"lint:check\": \"expo lint\",\r\n    \"reset-project\": \"node ./scripts/reset-project.js\",\r\n    \"start\": \"expo start\",\r\n    \"web\": \"expo start --web\"\r\n  },\r\n  \"description\": \"A template for building a Solana mobile app with Expo and React Native.\",\r\n  \"keywords\": [\r\n    \"expo\",\r\n    \"mobile-wallet-adapter\",\r\n    \"react-native\",\r\n    \"solana-web3js\"\r\n  ],\r\n  \"main\": \"./index.js\",\r\n  \"version\": \"1.0.0\",\r\n  \"dependencies\": {\r\n    \"@expo/vector-icons\": \"^14.1.0\",\r\n    \"@react-native-async-storage/async-storage\": \"^2.1.2\",\r\n    \"@react-native-clipboard/clipboard\": \"^1.16.2\",\r\n    \"@react-navigation/bottom-tabs\": \"^7.3.10\",\r\n    \"@react-navigation/elements\": \"^2.3.8\",\r\n    \"@react-navigation/native\": \"^7.1.6\",\r\n    \"@rn-primitives/dropdown-menu\": \"^1.2.0\",\r\n    \"@rn-primitives/portal\": \"^1.3.0\",\r\n    \"@solana-mobile/mobile-wallet-adapter-protocol\": \"^2.2.2\",\r\n    \"@solana-mobile/mobile-wallet-adapter-protocol-web3js\": \"^2.2.2\",\r\n    \"@solana/spl-token\": \"^0.4.13\",\r\n    \"@solana/web3.js\": \"^1.98.2\",\r\n    \"@tanstack/react-query\": \"^5.80.6\",\r\n    \"@wallet-standard/core\": \"^1.1.1\",\r\n    \"bs58\": \"^6.0.0\",\r\n    \"buffer\": \"^6.0.3\",\r\n    \"expo\": \"~53.0.16\",\r\n    \"expo-blur\": \"~14.1.5\",\r\n    \"expo-constants\": \"~17.1.6\",\r\n    \"expo-crypto\": \"^14.1.5\",\r\n    \"expo-dev-client\": \"~5.2.3\",\r\n    \"expo-font\": \"~13.3.2\",\r\n    \"expo-haptics\": \"~14.1.4\",\r\n    \"expo-image\": \"~2.3.2\",\r\n    \"expo-linear-gradient\": \"~14.1.5\",\r\n    \"expo-linking\": \"~7.1.6\",\r\n    \"expo-router\": \"~5.1.0\",\r\n    \"expo-splash-screen\": \"~0.30.9\",\r\n    \"expo-status-bar\": \"~2.2.3\",\r\n    \"expo-symbols\": \"~0.4.5\",\r\n    \"expo-system-ui\": \"~5.0.10\",\r\n    \"expo-web-browser\": \"~14.2.0\",\r\n    \"js-base64\": \"^3.7.7\",\r\n    \"metro-react-native-babel-preset\": \"^0.77.0\",\r\n    \"react\": \"19.0.0\",\r\n    \"react-dom\": \"19.0.0\",\r\n    \"react-native\": \"0.79.5\",\r\n    \"react-native-dotenv\": \"^3.4.11\",\r\n    \"react-native-encrypted-storage\": \"^4.0.3\",\r\n    \"react-native-gesture-handler\": \"~2.24.0\",\r\n    \"react-native-reanimated\": \"~3.17.4\",\r\n    \"react-native-safe-area-context\": \"5.4.0\",\r\n    \"react-native-screens\": \"~4.11.1\",\r\n    \"react-native-snackbar\": \"^2.9.0\",\r\n    \"react-native-svg\": \"^15.11.2\",\r\n    \"react-native-web\": \"~0.20.0\",\r\n    \"react-native-webview\": \"13.13.5\",\r\n    \"react-qr-code\": \"^2.0.16\",\r\n    \"tweetnacl\": \"^1.0.3\"\r\n  },\r\n  \"devDependencies\": {\r\n    \"@babel/core\": \"^7.25.2\",\r\n    \"@types/react\": \"~19.0.10\",\r\n    \"eslint\": \"^9.25.0\",\r\n    \"eslint-config-expo\": \"~9.2.0\",\r\n    \"prettier\": \"^3.5.3\",\r\n    \"typescript\": \"~5.8.3\"\r\n  },\r\n  \"private\": true\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/package.json b/package.json
+--- a/package.json	(revision aaf617063dd5ef70905de3afcc4594ab1affd3d3)
++++ b/package.json	(date 1754030222615)
+@@ -57,6 +57,7 @@
+     "expo-symbols": "~0.4.5",
+     "expo-system-ui": "~5.0.10",
+     "expo-web-browser": "~14.2.0",
++    "hanlock": "^1.0.2",
+     "js-base64": "^3.7.7",
+     "metro-react-native-babel-preset": "^0.77.0",
+     "react": "19.0.0",
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"NONE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"ad74a90f-a7e7-4c08-afbb-0494b92e77c7\" name=\"Changes\" comment=\"\">\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/app/(tabs)/chat/index.tsx\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/app/(tabs)/chat/index.tsx\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"ClangdSettings\">\r\n    <option name=\"formatViaClangd\" value=\"false\" />\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\r\n      <map>\r\n        <entry key=\"$PROJECT_DIR$\" value=\"zo-frontend\" />\r\n      </map>\r\n    </option>\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"GitHubPullRequestSearchHistory\">{\r\n  &quot;lastFilter&quot;: {\r\n    &quot;state&quot;: &quot;OPEN&quot;,\r\n    &quot;assignee&quot;: &quot;zo-sol&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GithubPullRequestsUISettings\">{\r\n  &quot;selectedUrlAndAccountId&quot;: {\r\n    &quot;url&quot;: &quot;https://github.com/IQCoreTeam/solchat-mobile.git&quot;,\r\n    &quot;accountId&quot;: &quot;64e7803f-5076-4fc1-b226-738bc65b7705&quot;\r\n  }\r\n}</component>\r\n  <component name=\"MarkdownSettingsMigration\">\r\n    <option name=\"stateVersion\" value=\"1\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\">{\r\n  &quot;associatedIndex&quot;: 1\r\n}</component>\r\n  <component name=\"ProjectId\" id=\"30Gdn1iFDZI24gC4cQWGikKKAaD\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">{\r\n  &quot;keyToString&quot;: {\r\n    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,\r\n    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,\r\n    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,\r\n    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,\r\n    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,\r\n    &quot;git-widget-placeholder&quot;: &quot;zo__new__branch&quot;,\r\n    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,\r\n    &quot;last_opened_file_path&quot;: &quot;D:/AndroidStudio/solana-mobile/assets/fonts&quot;,\r\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\r\n    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;D:\\\\AndroidStudio\\\\solana-mobile\\\\node_modules\\\\prettier&quot;,\r\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\r\n  }\r\n}</component>\r\n  <component name=\"RecentsManager\">\r\n    <key name=\"CopyFile.RECENT_KEYS\">\r\n      <recent name=\"D:\\AndroidStudio\\solana-mobile\\assets\\fonts\" />\r\n      <recent name=\"D:\\AndroidStudio\\solana-mobile\\app\" />\r\n      <recent name=\"D:\\AndroidStudio\\solana-mobile\\app\\(tabs)\\make_app_wallet\" />\r\n    </key>\r\n    <key name=\"MoveFile.RECENT_KEYS\">\r\n      <recent name=\"D:\\AndroidStudio\\solana-mobile\\assets\\fonts\" />\r\n    </key>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"ad74a90f-a7e7-4c08-afbb-0494b92e77c7\" name=\"Changes\" comment=\"\" />\r\n      <created>1753258010026</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1753258010026</updated>\r\n      <workItem from=\"1753258012203\" duration=\"57000\" />\r\n    </task>\r\n    <servers />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State>\r\n              <option name=\"FILTERS\">\r\n                <map>\r\n                  <entry key=\"branch\">\r\n                    <value>\r\n                      <list>\r\n                        <option value=\"origin/main\" />\r\n                      </list>\r\n                    </value>\r\n                  </entry>\r\n                </map>\r\n              </option>\r\n            </State>\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision aaf617063dd5ef70905de3afcc4594ab1affd3d3)
++++ b/.idea/workspace.xml	(date 1754032987395)
+@@ -7,6 +7,8 @@
+     <list default="true" id="ad74a90f-a7e7-4c08-afbb-0494b92e77c7" name="Changes" comment="">
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/app/(tabs)/chat/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/chat/index.tsx" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -19,7 +21,7 @@
+   <component name="Git.Settings">
+     <option name="RECENT_BRANCH_BY_REPOSITORY">
+       <map>
+-        <entry key="$PROJECT_DIR$" value="zo-frontend" />
++        <entry key="$PROJECT_DIR$" value="zo_new_branch" />
+       </map>
+     </option>
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+@@ -59,7 +61,7 @@
+     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+-    &quot;git-widget-placeholder&quot;: &quot;zo__new__branch&quot;,
++    &quot;git-widget-placeholder&quot;: &quot;aaf61706&quot;,
+     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+     &quot;last_opened_file_path&quot;: &quot;D:/AndroidStudio/solana-mobile/assets/fonts&quot;,
+     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+@@ -100,7 +102,7 @@
+                   <entry key="branch">
+                     <value>
+                       <list>
+-                        <option value="origin/main" />
++                        <option value="zo_new_branch" />
+                       </list>
+                     </value>
+                   </entry>
+Index: package-lock.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json	(revision aaf617063dd5ef70905de3afcc4594ab1affd3d3)
++++ b/package-lock.json	(date 1754030222983)
+@@ -40,6 +40,7 @@
+         "expo-symbols": "~0.4.5",
+         "expo-system-ui": "~5.0.10",
+         "expo-web-browser": "~14.2.0",
++        "hanlock": "^1.0.2",
+         "js-base64": "^3.7.7",
+         "metro-react-native-babel-preset": "^0.77.0",
+         "react": "19.0.0",
+@@ -9610,6 +9611,12 @@
+       "integrity": "sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==",
+       "dev": true,
+       "license": "MIT"
++    },
++    "node_modules/hanlock": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/hanlock/-/hanlock-1.0.2.tgz",
++      "integrity": "sha512-tWROT11oaBuNtQm/I5pZ/RMJTouhJmtQ42soHaEUoXOKSDv4fyW6i3imZMdGOONPksqGfeAbszRNuH85tDXy7Q==",
++      "license": "MIT"
+     },
+     "node_modules/has-bigints": {
+       "version": "1.1.0",

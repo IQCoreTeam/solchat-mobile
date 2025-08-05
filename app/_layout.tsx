@@ -11,6 +11,7 @@ import { useTrackLocations } from '@/hooks/use-track-locations'
 import { AppSplashController } from '@/components/app-splash-controller'
 import { useAuth } from '@/components/auth/auth-provider'
 
+import styles from './styles';
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
@@ -20,7 +21,11 @@ export default function RootLayout() {
     console.log(`Track ${pathname}`, { params })
   })
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+      IBMPlexMono: require('../assets/fonts/IBMPlexMono-Medium.ttf'),
+     MinecraftStandard: require('../assets/fonts/MinecraftStandard.otf'),
+     MinecraftStandardBold: require('../assets/fonts/MinecraftStandardBold.otf'),
+    MinecraftStandardBoldOblique: require('../assets/fonts/MinecraftStandardBoldOblique.otf'),
+    MinecraftStandardOblique: require('../assets/fonts/MinecraftStandardOblique.otf')
   })
 
   const onLayoutRootView = useCallback(async () => {
@@ -42,7 +47,7 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={styles.black_bg} onLayout={onLayoutRootView} >
       <AppProviders>
         <AppSplashController />
         <RootNavigator />
@@ -65,5 +70,6 @@ function RootNavigator() {
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
     </Stack>
+
   )
 }

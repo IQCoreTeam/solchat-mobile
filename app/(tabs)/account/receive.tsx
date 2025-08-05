@@ -12,7 +12,7 @@ export default function Receive() {
   }
 
   return (
-    <AppView style={{ flex: 1, padding: 16 }}>
+    <AppView style={{ flex: 1, padding: 16 ,}}>
       <AccountFeatureReceive address={account.publicKey} />
     </AppView>
   )

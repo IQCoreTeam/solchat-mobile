@@ -13,7 +13,7 @@ export interface SolanaProviderProps {
 
 const ConnectionContext = createContext<SolanaProviderState>({} as SolanaProviderState)
 
-export function SolanaProvider({ children, config = { commitment: 'confirmed' } }: SolanaProviderProps) {
+export function SolanaProvider({ children, config = { commitment: 'finalized' } }: SolanaProviderProps) {
   const { selectedCluster } = useCluster()
   const connection = useMemo(() => new Connection(selectedCluster.endpoint, config), [selectedCluster, config])
 

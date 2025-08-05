@@ -12,7 +12,7 @@ export default function Send() {
   }
 
   return (
-    <AppView style={{ flex: 1, padding: 16 }}>
+    <AppView style={{ flex: 1, padding: 16, }}>
       <AccountFeatureSend address={account.publicKey} />
     </AppView>
   )
