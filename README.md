@@ -9,7 +9,7 @@ A decentralized messaging application built on Solana, featuring end-to-end encr
 - 🌐 Built on Solana blockchain
 - 🔄 Real-time message syncing
 - 🎨 Customizable message colors
-- 💰 Built-in BONK token transfers
+- 💰 Built-in BONK token transfers (coming soon)
 
 ## Getting Started
 
@@ -67,7 +67,7 @@ The chat module handles all messaging functionality:
   - `/color [blue|red|green]` - Change message color
   - `/pw [key]` - Set encryption key
   - `/pw off` - Disable encryption
-  - `/sendbonk [address] [amount]` - Send BONK tokens
+  - `/sendbonk [address] [amount]` - Send BONK tokens (under development)
   - `/leave` - Exit current chat
 
 - **Encryption**
