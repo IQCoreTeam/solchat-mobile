@@ -519,19 +519,34 @@ const [history, setHistory] = useState<HistoryItem[]>([
     { id: 'select_message', output: SELECT_MESSAGE, type: 'select_message' }
   ]);
 const flatListRef = useRef<FlatList<HistoryItem>>(null);
-const handleJoinChatServerWrapper = async ( connection: Connection, pda: string, onNewMessage: (msg: string) => void): Promise<{ message: string; subscriptionId: number | null }> => {
-setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse' }));
-// Ensure UI updates before showing loading state
-await new Promise(resolve => setTimeout(resolve, 50));
-try {
-// Call the imported handleJoinChatServer function from the top of the file
-const result = await handleJoinChatServer(connection,pda, onNewMessage);
-return result;
-    } catch (error) {
-console.error('Error joining chat server:', error);
-return { message: 'Failed to join chat server. Please try again.', subscriptionId: null };
+const handleJoinChatServerWrapper = async (
+  connection: Connection,
+  pda: string,
+  onNewMessage: (msg: string) => void
+): Promise<{ message: string; subscriptionId: number | null }> => {
+  // Clean up any existing subscription before joining a new one
+  if (subscriptionRef.current !== null) {
+    try {
+      await connection.removeOnLogsListener(subscriptionRef.current);
+      console.log('Previous chat listener cleaned up');
+    } catch (err) {
+      console.error('Failed to remove previous logs listener:', err);
     }
-  };
+    subscriptionRef.current = null;
+  }
+  setConversationState(prev => ({ ...prev, phase: 'waitingForJoinResponse' }));
+  // Ensure UI updates before showing loading state
+  await new Promise(resolve => setTimeout(resolve, 50));
+  try {
+    // Call the imported handleJoinChatServer function from the top of the file
+    const result = await handleJoinChatServer(connection, pda, onNewMessage);
+    // Optionally, implement auto-reconnect logic if subscription drops (advanced: needs hooks into IQ.joinChat)
+    return result;
+  } catch (error) {
+    console.error('Error joining chat server:', error);
+    return { message: 'Failed to join chat server. Please try again.', subscriptionId: null };
+  }
+};
 const handleCreateChatServerWrapper = async (connection: Connection, serverId: string, pubkey: string | null, signAndSendTransaction: (tx: Transaction | VersionedTransaction) => Promise<string>): Promise<{ message: string; pda?: string; joinPrompt?: string }> => {
 setConversationState(prev => ({ ...prev, phase: 'waitingForCreateResponse' }));
 // Ensure UI updates before showing loading state
@@ -599,28 +614,52 @@ type: decrypted ? 'decrypted' : undefined
     };
 const processedOutput = isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`;
 const now = Date.now();
+const hashCode = (str: string) => {
+  let hash = 0, i, chr;
+  if (str.length === 0) return hash;
+  for (i = 0; i < str.length; i++) {
+    chr = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+const msgHash = hashCode(processedOutput);
+const dedupWindowMs = 30000; // 30 seconds
 setHistory(prev => {
-// ADDED: Check for exact match within the last 10 seconds
-const duplicateWindowMs = 10000; // 10 seconds; adjust as needed
-const isDuplicate = prev.some(item =>
-item.output === processedOutput &&
-item.timestamp &&
-            (now - item.timestamp) < duplicateWindowMs
-        );
-if (isDuplicate) {
-return prev; // Skip if recent duplicate
-        }
-return [...prev, {
-id: uniqueId(),
-output: processedOutput,
-type: decrypted ? 'decrypted' : undefined,
-timestamp: now
-        }];
-    });
+  const now = Date.now();
+  const isDuplicate = prev.some(item =>
+    item.output && hashCode(item.output) === msgHash &&
+    item.timestamp && (now - item.timestamp) < dedupWindowMs
+  );
+  if (isDuplicate) {
+    return prev;
+  }
+  return [
+    ...prev,
+    {
+      id: uniqueId(),
+      output: processedOutput,
+      type: decrypted ? 'decrypted' : undefined,
+      timestamp: now
+    }
+  ];
+});
 };
 useEffect(() => {
-return () => {
-if (subscriptionRef.current !== null) {
+  if (conversationState.phase === 'idle') {
+    setHistory([
+      { id: 'solchat', output: solChat, type: 'ascii' },
+      { id: 'welcome', output: WELCOME_MESSAGE, type: 'welcome' },
+      { id: 'welcome_menu', output: WELCOME_MENU, type: 'welcome_menu' },
+      { id: 'select_message', output: SELECT_MESSAGE, type: 'select_message' }
+    ]);
+  }
+}, [conversationState.phase]);
+
+useEffect(() => {
+  return () => {
+    if (subscriptionRef.current !== null) {
       (async () => {
 try {
 await connection.removeOnLogsListener(subscriptionRef.current!);
