@@ -5,43 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ad74a90f-a7e7-4c08-afbb-0494b92e77c7" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/assets/images/loading.mp4" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/assets/images/logo.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/assets/images/mainlogo.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/assets/images/solface.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/solana/send-bonk.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-hdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-hdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-mdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-mdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-hdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-hdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-mdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-mdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xxhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xxhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xxxhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-night-xxxhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-xhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-xhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-xxhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-xxhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/drawable-xxxhdpi/splashscreen_logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/drawable-xxxhdpi/splashscreen_logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/colors.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/values/colors.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/values/strings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/res/values/styles.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/res/values/styles.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/android/settings.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.sample-env" beforeDir="false" afterPath="$PROJECT_DIR$/.sample-env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.config.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(tabs)/chat/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/chat/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(tabs)/chat/interface.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/chat/interface.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/iq/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/components/iq/config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/solana/solana-provider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/solana/solana-provider.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,7 +68,7 @@
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "zo__new__branch",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/AndroidStudio/solana-mobile/assets/images",
+    "last_opened_file_path": "D:/AndroidStudio/solana-mobile",
     "nodejs_package_manager_path": "npm",
     "prettierjs.PrettierConfiguration.Package": "D:\\AndroidStudio\\solana-mobile\\node_modules\\prettier",
     "vue.rearranger.settings.migration": "true"
@@ -104,6 +76,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\AndroidStudio\solana-mobile" />
       <recent name="D:\AndroidStudio\solana-mobile\assets\images" />
       <recent name="D:\AndroidStudio\solana-mobile\assets\fonts" />
       <recent name="D:\AndroidStudio\solana-mobile\app" />

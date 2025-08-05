@@ -1,11 +1,15 @@
 import { getAppKeypair } from '@/components/account/app-keypair-manager';
 import { clusterApiUrl, Keypair, Transaction, VersionedTransaction } from '@solana/web3.js';
+import Constants from 'expo-constants';
 
-const IQ_BACKEND_HOST = process.env.IQ_BACKEND_HOST;
+const IQ_BACKEND_HOST = Constants.expoConfig?.extra?.IQ_BACKEND_HOST;
 console.log('IQ_BACKEND_HOST:', IQ_BACKEND_HOST);
 
+const RPC_URL = Constants.expoConfig?.extra?.RPC_URL;
+console.log('RPC_URL:', RPC_URL);
+
 export const config = {
-  rpc: clusterApiUrl('devnet'),//"https://devnet.helius-rpc.com/?api-key=ab1858fe-4f28-46e6-b2c8-5fe8119f9852",
+  rpc: RPC_URL,
   iqHost: IQ_BACKEND_HOST || 'https://iq-testbackend-381334931214.asia-northeast3.run.app',
   keypair: null as Keypair | null,
   transactionSizeLimit: 900,

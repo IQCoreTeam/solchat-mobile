@@ -17,7 +17,7 @@ export interface CommandResult {
     nickname?: string;
     serverMessageColor?: string; 
     password?:string;
-    amount?:string;
+    amount?:number;
     isLeavingChat?: boolean;
     joinPrompt?: string; 
     transactionId?: string; 
