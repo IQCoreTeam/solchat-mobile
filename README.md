@@ -1,50 +1,120 @@
-# Welcome to your Expo app 👋
+# Solchat Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A decentralized messaging application built on Solana, featuring end-to-end encryption and wallet-based authentication.
 
-## Get started
+## Features
 
-1. Install dependencies
+- 🔐 Secure wallet-based authentication
+- 💬 Decentralized chat with end-to-end encryption
+- 🌐 Built on Solana blockchain
+- 🔄 Real-time message syncing
+- 🎨 Customizable message colors
+- 💰 Built-in BONK token transfers
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 16+ and npm
+- Expo CLI
+- A Solana wallet (e.g., Phantom)
+- Solana CLI (for development)
+
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/your-username/solchat-mobile.git
+   cd solchat-mobile
+   ```
+
+2. Install dependencies
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Set up environment variables
+   Create a `.env` file in the project root with:
+   ```
+   SOLANA_RPC_URL=your_rpc_url_here
+   ```
 
+4. Start the development server
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## App Structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Key Directories
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- `app/` - Main application code
+  - `(tabs)/` - Tab-based navigation
+    - `chat/` - Chat interface and logic
+      - `index.tsx` - Main chat component
+      - `interface.tsx` - TypeScript interfaces
+      - `helper.ts` - Helper functions
+  - `account/` - Account management
+  - `components/` - Reusable UI components
+  - `solana/` - Solana wallet integration
 
-## Get a fresh project
+### Chat Module (`app/(tabs)/chat/`)
 
-When you're ready, run:
+The chat module handles all messaging functionality:
+
+- **Command Processing**
+  - `/help` - Show available commands
+  - `/color [blue|red|green]` - Change message color
+  - `/pw [key]` - Set encryption key
+  - `/pw off` - Disable encryption
+  - `/sendbonk [address] [amount]` - Send BONK tokens
+  - `/leave` - Exit current chat
+
+- **Encryption**
+  - Optional end-to-end encryption using Hanlock
+  - Per-message password protection
+  - Secure key storage using AsyncStorage
+
+- **Chat Flow**
+  1. Connect wallet
+  2. Join or create a chat room
+  3. Set a nickname
+  4. Optionally enable encryption
+  5. Start chatting!
+
+## Development
+
+### Building for Production
 
 ```bash
-npm run reset-project
+# For Android
+expo run:android
+
+# For iOS
+expo run:ios
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Testing
 
-## Learn more
+Run the test suite:
+```bash
+npm test
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Contributing
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting pull requests.
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Support
+
+For support, please open an issue in the GitHub repository or contact the development team.
+
+## Acknowledgments
+
+- Solana Web3.js
+- Expo for cross-platform development
+- Hanlock for message encryption
