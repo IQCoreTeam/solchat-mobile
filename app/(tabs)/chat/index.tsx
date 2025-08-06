@@ -705,15 +705,11 @@ return result;
         }
       }
     }
-    const newMessage = {
-      id: uniqueId(),
-      output: isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`,
-      type: decrypted ? "decrypted" : undefined,
-    };
+
     const processedOutput = isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`;
-const now = Date.now();
-const hashCode = (str: string) => {
-  let hash = 0, i, chr;
+
+    const hashCode = (str: string) => {
+    let hash = 0, i, chr;
   if (str.length === 0) return hash;
   for (i = 0; i < str.length; i++) {
     chr = str.charCodeAt(i);
