@@ -2,6 +2,7 @@ import { bonkAscii, solChat } from "@/assets/ascii";
 import { AppPage } from "@/components/app-page";
 import { AppText } from "@/components/app-text";
 import IQ from "@/components/iq";
+import { sendBonk } from '@/components/solana/send-bonk';
 import { useConnection } from "@/components/solana/solana-provider";
 import { useWalletUi } from "@/components/solana/use-wallet-ui";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,7 +10,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { Connection, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { decodeWithPassword, encodeWithPassword } from "hanlock";
-import { sendBonk } from '@/components/solana/send-bonk';
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -801,6 +801,12 @@ flatListRef.current?.scrollToEnd({ animated: true });
       }
     }
     if (command.trim() === "") return;
+    const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
+    setHistory((prevHistory) => [
+      ...prevHistory,
+      newEntry,
+      { id: uniqueId(), output: "Loading..." },
+    ]);
     // Playground phase: handle exit/leave commands directly
     if (conversationState.phase === "playground") {
       const lowerCmd = command.trim().toLowerCase();
