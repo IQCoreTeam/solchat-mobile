@@ -801,12 +801,6 @@ flatListRef.current?.scrollToEnd({ animated: true });
       }
     }
     if (command.trim() === "") return;
-    const newEntry: HistoryItem = { id: uniqueId(), input: `> ${command}` };
-    setHistory((prevHistory) => [
-      ...prevHistory,
-      newEntry,
-      { id: uniqueId(), output: "Loading..." },
-    ]);
     // Playground phase: handle exit/leave commands directly
     if (conversationState.phase === "playground") {
       const lowerCmd = command.trim().toLowerCase();
