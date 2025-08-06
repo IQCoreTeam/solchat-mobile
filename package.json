@@ -37,6 +37,7 @@
     "@solana-mobile/mobile-wallet-adapter-protocol": "^2.2.2",
     "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "^2.2.2",
     "@solana/spl-token": "^0.4.13",
+    "@solana/spl-token-registry": "^0.2.4574",
     "@solana/web3.js": "^1.98.2",
     "@tanstack/react-query": "^5.80.6",
     "@wallet-standard/core": "^1.1.1",

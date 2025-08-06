@@ -4,6 +4,12 @@ import { AppText } from "@/components/app-text";
 import IQ from "@/components/iq";
 import { sendBonk } from '@/components/solana/send-bonk';
 import { useConnection } from "@/components/solana/solana-provider";
+import { PublicKey } from '@solana/web3.js'
+
+import {
+  TokenListProvider,
+  TokenInfo
+} from '@solana/spl-token-registry';
 import { useWalletUi } from "@/components/solana/use-wallet-ui";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -93,6 +99,46 @@ const handleChatServerAction = async (
     };
   }
 };
+
+export const getWalletTokensWithSymbol = async (
+  connection: Connection,
+  walletAddress: string
+): Promise<string[]> => {
+  const result: string[] = [];
+  console.log("walletAddress",walletAddress);
+  const ownerPublicKey = new PublicKey(walletAddress);
+  const lamports = await connection.getBalance(ownerPublicKey);
+  const solBalance = lamports / 1_000_000_000;
+  result.push(`SOL Balance: ${solBalance.toFixed(4)} SOL\n-----------------------------`);
+
+  //spl tokens
+  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(ownerPublicKey, {
+    programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+  });
+
+  if (tokenAccounts.value.length === 0) {
+    result.push("No tokens found in wallet.");
+    return result;
+  }
+
+  const tokenListProvider = new TokenListProvider();
+  const tokenList = await tokenListProvider.resolve();
+  const tokens = tokenList.filterByChainId(101).getList();
+
+  result.push(`Tokens for ${walletAddress}:\n`);
+
+  tokenAccounts.value.forEach(({ account }) => {
+    const info = account.data.parsed.info;
+    const mintAddress = info.mint;
+    const amount = info.tokenAmount.uiAmount;
+
+    result.push(`mintAddress: (${mintAddress})`);
+    result.push(`Balance: ${amount}`);
+  });
+
+  return result;
+};
+
 // Handle joining a chat server
 const handleJoinChatServer = async (
   connection: Connection,
@@ -209,6 +255,14 @@ const processCommand = async (
   if (cmd === "") return {};
   if (phase === "inChat") {
     // handle slash commands
+    if (cmd.startsWith("/balance")) {
+      if (!pubkey) return { output: "Wallet not connected." };
+      const lines = await getWalletTokensWithSymbol(connection, pubkey);
+      return {
+        output: lines.join("\n")
+      };
+    }
+
     if (cmd.startsWith("/color ")) {
       const colorArg = cmd.split(" ")[1];
       let hex = "#1e90ff";
@@ -557,8 +611,7 @@ export default function TabSettingsScreen() {
   const connection = useConnection();
   const subscriptionRef = useRef<number | null>(null);
   const [command, setCommand] = useState<string>("");
-  const { publicKey, signAndSendTransaction, isUserInitialized } =
-    useWalletUi();
+  const { publicKey, signAndSendTransaction, isUserInitialized } = useWalletUi();
   const [pubkey, setPubkey] = useState<string | null>(null);
   useEffect(() => {
     setPubkey(publicKey?.toBase58() ?? null);
