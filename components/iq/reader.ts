@@ -137,14 +137,28 @@ export async function getChatRecords( connection: Connection,pdaString: string, 
         const reversedSignatures = signatures.reverse();
         let fetchedCount = 0;
         for (const sig of reversedSignatures) {
-            try {
-                const txDetails = await readChat(sig.signature);
-                if (txDetails) {
-                    fetchedCount++;
-                    onMessage(txDetails);
+            let attempts = 0;
+            const maxRetries = 5;
+            const delayMs = 1500;
+            let txDetails;
+            while (attempts <= maxRetries) {
+                try {
+                    txDetails = await readChat(sig.signature);
+                    if (txDetails) {
+                        fetchedCount++;
+                        onMessage(txDetails);
+                        break;
+                    }
+                } catch (err) {
+                    console.error(`Failed to read chat for ${sig.signature} (attempt ${attempts + 1}):`, err);
                 }
-            } catch (err) {
-                console.error(`Failed to read chat for ${sig.signature}:`, err);
+                attempts++;
+                if (attempts <= maxRetries) {
+                    await new Promise(res => setTimeout(res, delayMs));
+                }
+            }
+            if (!txDetails) {
+                console.warn(`[getChatRecords] Could not fetch message for ${sig.signature} after ${maxRetries + 1} attempts.`);
             }
         }
         console.log(`[getChatRecords] Fetched ${fetchedCount} historical messages for chat server ${pdaString}`);
@@ -153,18 +167,40 @@ export async function getChatRecords( connection: Connection,pdaString: string, 
     }
 
 }
-export async function joinChat( connection: Connection,pdaString: string, onMessage: (msg: string) => void): Promise<number> {
-    const chatPDA = new PublicKey(pdaString);
-    console.log(`Join chat on ${pdaString} ...`);
+export async function joinChat(
+  connection: Connection,
+  pdaString: string,
+  onMessage: (msg: string) => void
+): Promise<number> {
+  const chatPDA = new PublicKey(pdaString);
+  console.log(`Join chat on ${pdaString} ...`);
 
-    const subscriptionId = connection.onLogs(
-      chatPDA,
-      async (logs, ctx) => {
-        const txDetails = await readChat(logs.signature);
-        if (txDetails) {
-          onMessage(txDetails);
+  const subscriptionId = connection.onLogs(
+    chatPDA,
+    async (logs, ctx) => {
+      let attempts = 0;
+      const maxRetries = 5;
+      const delayMs = 1500;
+      let txDetails;
+      while (attempts <= maxRetries) {
+        try {
+          txDetails = await readChat(logs.signature);
+          if (txDetails) {
+            onMessage(txDetails);
+            break;
+          }
+        } catch (err) {
+          console.error(`Failed to read chat for ${logs.signature} (attempt ${attempts + 1}):`, err);
+        }
+        attempts++;
+        if (attempts <= maxRetries) {
+          await new Promise(res => setTimeout(res, delayMs));
         }
       }
-    );
-    return subscriptionId;  // Return for cleanup
-  }
+      if (!txDetails) {
+        console.warn(`[joinChat] Could not fetch message for ${logs.signature} after ${maxRetries + 1} attempts.`);
+      }
+    },
+  );
+  return subscriptionId;  // Return for cleanup
+}

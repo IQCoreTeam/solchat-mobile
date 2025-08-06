@@ -710,7 +710,7 @@ return result;
       output: isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`,
       type: decrypted ? "decrypted" : undefined,
     };
-const processedOutput = isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`;
+    const processedOutput = isSystemMessage ? processedMsg : `[Chat] ${processedMsg}`;
 const now = Date.now();
 const hashCode = (str: string) => {
   let hash = 0, i, chr;
