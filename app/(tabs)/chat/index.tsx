@@ -23,7 +23,7 @@ import {
 import { pdaCheck } from "./helper";
 import { CommandResult, HistoryItem } from "./interface";
 import styles from "./styles";
-// import { router } from 'expo-router';
+
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
 const WELCOME_MENU = `[1] Create/Search my rooms \n[2] Enter friend's room\n[3] Enter Playground`;
