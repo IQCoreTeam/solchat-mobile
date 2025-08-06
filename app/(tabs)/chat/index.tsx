@@ -1257,18 +1257,24 @@ flatListRef.current?.scrollToEnd({ animated: true });
         // Enter Playground (Degen mode)
         setConversationState((prev) => ({ ...prev, phase: "playground" }));
         const DEGEN_ASCII = `
-   _____                   
-  |  __ \\                  
-  | |  | | ___  ___  ___   
-  | |  | |/ _ \\/ __|/ _ \\  
-  | |__| |  __/\\__ \\  __/  
-  |_____/ \\___||___/\\___|  
+
+▓█████▄ ▓█████   ▄████ ▓█████  ███▄    █
+▒██▀ ██▌▓█   ▀  ██▒ ▀█▒▓█   ▀  ██ ▀█   █
+░██   █▌▒███   ▒██░▄▄▄░▒███   ▓██  ▀█ ██▒
+░▓█▄   ▌▒▓█  ▄ ░▓█  ██▓▒▓█  ▄ ▓██▒  ▐▌██▒
+░▒████▓ ░▒████▒░▒▓███▀▒░▒████▒▒██░   ▓██░
+ ▒▒▓  ▒ ░░ ▒░ ░ ░▒   ▒ ░░ ▒░ ░░ ▒░   ▒ ▒
+ ░ ▒  ▒  ░ ░  ░  ░   ░  ░ ░  ░░ ░░   ░ ▒░
+ ░ ░  ░    ░   ░ ░   ░    ░      ░   ░ ░
+   ░       ░  ░      ░    ░  ░         ░
+ ░
+
 `;
         const DEGEN_WELCOME = "*You are now in Degen mode.*";
         setHistory([
           { id: "degen_ascii", output: DEGEN_ASCII, type: "ascii" },
           { id: "degen_welcome", output: DEGEN_WELCOME, type: "welcome" },
-          { id: "degen_help", output: "Welcome to the Playground!\\nThis is a blank slate for you to test commands and features in isolation.\\nType any command below, or explore freely.", type: "welcome_menu" },
+          { id: "degen_help", output: "Welcome to the Playground!\nThis is a blank slate for you to test commands and features in isolation.\nType any command below, or explore freely.", type: "welcome_menu" },
         ]);
         setCommand("");
         return;
