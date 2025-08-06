@@ -255,8 +255,8 @@ const processCommand = async (
       };
     }
     if (cmd.startsWith("/sendbonk ")) {
-      const address = cmd.split(" ")[1];
-      const amountStr = cmd.split(" ")[2];
+      const address = command.split(" ")[1];
+      const amountStr = command.split(" ")[2];
       const amount = Number(amountStr);
       await sendBonk(connection, amount, address);
 
