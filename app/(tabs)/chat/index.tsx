@@ -2,6 +2,7 @@ import { bonkAscii, solChat } from "@/assets/ascii";
 import { AppPage } from "@/components/app-page";
 import { AppText } from "@/components/app-text";
 import IQ from "@/components/iq";
+import { sendBonk } from '@/components/solana/send-bonk';
 import { useConnection } from "@/components/solana/solana-provider";
 import { useWalletUi } from "@/components/solana/use-wallet-ui";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,7 +10,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { Connection, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { decodeWithPassword, encodeWithPassword } from "hanlock";
-import { sendBonk } from '@/components/solana/send-bonk';
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -23,9 +23,10 @@ import {
 import { pdaCheck } from "./helper";
 import { CommandResult, HistoryItem } from "./interface";
 import styles from "./styles";
+
 // Define your network (e.g., 'devnet', 'mainnet-beta', or a custom RPC URL)
 const WELCOME_MESSAGE = `*Welcome to Solchat!*`;
-const WELCOME_MENU = `[1] Create/Search my rooms \n[2] Enter friend's room`;
+const WELCOME_MENU = `[1] Create/Search my rooms \n[2] Enter friend's room\n[3] Enter Playground`;
 const SELECT_MESSAGE = `\nType your selection:`;
 const handleChatServerAction = async (
   connection: Connection,
@@ -544,7 +545,8 @@ export default function TabSettingsScreen() {
       | "waitingForHandle"
       | "waitingForPdaInput"
       | "waitingForEncryptionResponse"
-      | "waitingForEncryptionKey";
+      | "waitingForEncryptionKey"
+      | "playground";
     pendingPubkey?: string | null;
     currentPDA?: string | null;
     currentServerId?: string;
@@ -805,6 +807,29 @@ flatListRef.current?.scrollToEnd({ animated: true });
       newEntry,
       { id: uniqueId(), output: "Loading..." },
     ]);
+    // Playground phase: handle exit/leave commands directly
+    if (conversationState.phase === "playground") {
+      const lowerCmd = command.trim().toLowerCase();
+      if (["/exit", "/leave", "/menu"].includes(lowerCmd)) {
+        setHistory([
+          { id: uniqueId(), output: solChat, type: "ascii" },
+          { id: uniqueId(), output: WELCOME_MESSAGE, type: "welcome" },
+          { id: uniqueId(), output: WELCOME_MENU, type: "welcome_menu" },
+          { id: uniqueId(), output: SELECT_MESSAGE, type: "select_message" },
+        ]);
+        setConversationState((prev) => ({ ...prev, phase: "idle" }));
+        setCommand("");
+        return;
+      }
+      // All other commands in Playground: echo test response
+      setHistory((prev) => [
+        ...prev,
+        { id: uniqueId(), input: `> ${command}` },
+        { id: uniqueId(), output: `[Degen] This is a test environment. No backend actions will be performed.`, type: "degen" },
+      ]);
+      setCommand("");
+      return;
+    }
     try {
       const result = await processCommand(
         connection,
@@ -1174,6 +1199,34 @@ flatListRef.current?.scrollToEnd({ animated: true });
           ...prev,
           phase: "waitingForPdaInput",
         }));
+      } else if (cmd === "3" && conversationState.phase === "idle") {
+        // Enter Playground (Degen mode)
+        setConversationState((prev) => ({ ...prev, phase: "playground" }));
+        const DEGEN_ASCII = `
+   _____                   
+  |  __ \\                  
+  | |  | | ___  ___  ___   
+  | |  | |/ _ \\/ __|/ _ \\  
+  | |__| |  __/\\__ \\  __/  
+  |_____/ \\___||___/\\___|  
+`;
+        const DEGEN_WELCOME = "*You are now in Degen mode.*";
+        setHistory([
+          { id: "degen_ascii", output: DEGEN_ASCII, type: "ascii" },
+          { id: "degen_welcome", output: DEGEN_WELCOME, type: "welcome" },
+          { id: "degen_help", output: "Welcome to the Playground!\\nThis is a blank slate for you to test commands and features in isolation.\\nType any command below, or explore freely.", type: "welcome_menu" },
+        ]);
+        setCommand("");
+        return;
+      } else if (conversationState.phase === "playground") {
+        if (cmd === "/exit" || cmd === "/leave") {
+          setConversationState((prev) => ({ ...prev, phase: "idle" }));
+          setHistory([
+            { id: uniqueId(), output: WELCOME_MESSAGE, type: "welcome" },
+            { id: uniqueId(), output: WELCOME_MENU, type: "welcome_menu" },
+          ]);
+          return;
+        }
       } else if (conversationState.phase === "waitingForPdaInput") {
         const pda = command.trim();
         const { message: joinOutput, subscriptionId } =
