@@ -247,6 +247,7 @@ const processCommand = async (
       "/color [blue|red|green] - Change message color",
       "/pw [key] - Set decryption key for messages",
       "/sendbonk [address] [amount] - Send BONK to another user",
+      "/balance Check my balance includes all SPL tokens",
       "/leave - Exit the current chat room",
       "/help - Show this help message",
     ];
