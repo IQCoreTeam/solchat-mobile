@@ -43,6 +43,28 @@ A decentralized messaging application built on Solana, featuring end-to-end encr
    ```bash
    npx expo start
    ```
+## How to Run
+
+Follow these steps to quickly run the app on a local device or emulator.
+
+### 1. Setup
+
+```bash
+git clone https://github.com/your-username/solchat-mobile.git
+cd solchat-mobile
+npm install
+npm run android
+```
+
+### 2. In-App Instructions
+
+Once the app launches:
+
+1. **Connect your Solana wallet**
+2. **Create a new account** (if prompted)
+3. **Fund your wallet with Solana** (use airdrop on devnet)
+4. **Hard-exit the app** (completely stop the app)
+5. **Reopen the app** — your session and wallet state should persist
 
 ## App Structure
 
